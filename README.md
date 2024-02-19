@@ -1,1 +1,6 @@
-# CSE299.3-Project
+### CSE299.3-Project
+
+**Group members:** 
+- Arafat Anam Chowdhury - 203 1514 042 
+- Rajib Mohammed Nasim - 203 1050 642
+- Shakib Taher Joy - 211 1845 642
