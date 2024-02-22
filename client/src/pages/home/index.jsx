@@ -1,12 +1,39 @@
+import React, { useState } from "react";
 import styles from "./styles.module.css";
 
 function Home(userDetails) {
-    const user = userDetails.user;
+    const [studentInfoLink, setStudentInfoLink] = useState("");
+    const [assessmentLink, setAssessmentLink] = useState("");
+
+    const handleSubmit = async () => {
+        try {
+            const urlPattern = /^(ftp|http|https):\/\/[^ "]+$/;
+            if (!urlPattern.test(studentInfoLink) || !urlPattern.test(assessmentLink)) {
+                alert("Please enter valid URLs for both Student Information Link and Assessment Link.");
+                return;
+            }
+
+            const response = await fetch('/api/process-google-sheets', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ studentInfoLink, assessmentLink }),
+            });
+
+            if (response.ok) {
+                alert("Google Sheets processed successfully.");
+            } else {
+                throw new Error('Failed to process Google Sheets.');
+            }
+        } catch (error) {
+            console.error('Error processing Google Sheets:', error);
+            alert('An error occurred while processing Google Sheets.');
+        }
+    };
+
     const logout = () => {
         window.open(`${process.env.REACT_APP_API_URL}/auth/logout`, "_self");
-    };
-    const handleSubmit = () => {
-        // Logic for handling form submission
     };
 
     return (
@@ -14,12 +41,24 @@ function Home(userDetails) {
             <h1 className={styles.heading}>Home</h1>
             <div className={styles.form_container}>
                 <div className={styles.content}>
-                    <img src={user.picture} alt="profile" className={styles.profile_img} />
-                    <div><p>Student Information Link</p>
-                        <input type="text" className={styles.input}/>
+                    <img src={userDetails.user.picture} alt="profile" className={styles.profile_img} />
+                    <div>
+                        <p>Student Information Link</p>
+                        <input
+                            type="text"
+                            value={studentInfoLink}
+                            onChange={(e) => setStudentInfoLink(e.target.value)}
+                            className={styles.input}
+                        />
                     </div>
-                    <div><p>Assessment Link</p>
-                        <input type="text" className={styles.input}/>
+                    <div>
+                        <p>Assessment Link</p>
+                        <input
+                            type="text"
+                            value={assessmentLink}
+                            onChange={(e) => setAssessmentLink(e.target.value)}
+                            className={styles.input}
+                        />
                     </div>
                     <div>
                         <button className={styles.btn} onClick={handleSubmit}>
