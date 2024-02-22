@@ -10,3 +10,4 @@
 - Uploaded the initial files for client part of the project.
 - Updated the client Login and Home Page.
 - Updated the Google Auth file.
+- Updated Frontend for connection with backend.
