@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styles from "./styles.module.css";
 
-function Home(userDetails) {
+function Home() {
     const [studentInfoLink, setStudentInfoLink] = useState("");
     const [assessmentLink, setAssessmentLink] = useState("");
 
@@ -41,7 +41,6 @@ function Home(userDetails) {
             <h1 className={styles.heading}>Home</h1>
             <div className={styles.form_container}>
                 <div className={styles.content}>
-                    <img src={userDetails.user.picture} alt="profile" className={styles.profile_img} />
                     <div>
                         <p>Student Information Link</p>
                         <input
