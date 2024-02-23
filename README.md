@@ -11,4 +11,4 @@
 - Updated the client Login and Home Page.
 - Updated the Google Auth file.
 - Updated Frontend for connection with backend.
-- Updated files for backend.
+- Updated files for Backend connection with Frontend.
