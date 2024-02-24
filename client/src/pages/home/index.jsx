@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import styles from "./styles.module.css";
+import axios from "axios";
 
 function Home() {
     const [studentInfoLink, setStudentInfoLink] = useState("");
     const [assessmentLink, setAssessmentLink] = useState("");
+    const [receivedLinks, setReceivedLinks] = useState(null);
 
     const handleSubmit = async () => {
         try {
@@ -12,27 +14,18 @@ function Home() {
                 alert("Please enter valid URLs for both Student Information Link and Assessment Link.");
                 return;
             }
-
-            const response = await fetch('/api/process-google-sheets', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ studentInfoLink, assessmentLink }),
+            const response = await axios.post("http://localhost:8080/getData", {
+                studentInfoLink,
+                assessmentLink
             });
-
-            if (response.ok) {
-                alert("Google Sheets processed successfully.");
-            } else {
-                throw new Error('Failed to process Google Sheets.');
-            }
+            setReceivedLinks(response.data);
         } catch (error) {
-            console.error('Error processing Google Sheets:', error);
-            alert('An error occurred while processing Google Sheets.');
+            console.error("Error sending links:", error);
+            alert("An error occurred while sending links.");
         }
     };
 
-    const logout = () => {
+    const handleLogout = () => {
         window.open(`${process.env.REACT_APP_API_URL}/auth/logout`, "_self");
     };
 
@@ -63,7 +56,7 @@ function Home() {
                         <button className={styles.btn} onClick={handleSubmit}>
                             Submit
                         </button>
-                        <button className={styles.btn} onClick={logout}>
+                        <button className={styles.btn} onClick={handleLogout}>
                             Log Out
                         </button>
                     </div>

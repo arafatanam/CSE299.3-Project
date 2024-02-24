@@ -1,6 +1,6 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/home";
 import Login from "./pages/login";
 import "./App.css";
@@ -28,7 +28,7 @@ function App() {
 				<Route
 					exact
 					path="/"
-					element={user ? <Home user={user} /> : <Navigate to="/login" />}
+					element={user ? <Home getUser={getUser} /> : <Navigate to="/login" />}
 				/>
 				<Route
 					exact
