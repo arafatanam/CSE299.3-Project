@@ -15,3 +15,4 @@
 - Updated Frontend Submit button connection.
 - Updated form processing file. 
 - Updated sending links to Backend.  
+- Updated receiving links in Backend.
