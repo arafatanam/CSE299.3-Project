@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import styles from "./styles.module.css";
 import axios from "axios";
 
-function Home() {
+function Home(userDetails) {
+    const user = userDetails.user;
     const [studentInfoLink, setStudentInfoLink] = useState("");
     const [assessmentLink, setAssessmentLink] = useState("");
     const [receivedLinks, setReceivedLinks] = useState(null);
@@ -34,6 +35,8 @@ function Home() {
             <h1 className={styles.heading}>Home</h1>
             <div className={styles.form_container}>
                 <div className={styles.content}>
+                <img src={user.picture} alt="profile" className={styles.profile_img}
+					/>
                     <div>
                         <p>Student Information Link</p>
                         <input
