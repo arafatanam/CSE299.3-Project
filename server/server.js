@@ -2,10 +2,10 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const passport = require("passport");
-const passportSetup = require("./passport");
 const authRoute = require("./routes/auth");
-const formProcessRoute = require("./form-process");
+const formProcessRoute = require("./routes/form-process");
 const cookieSession = require("cookie-session");
+const passportSetup = require("./passport");
 const app = express();
 const bodyParser = require("body-parser");
 
@@ -40,4 +40,4 @@ app.post("/getData", (req, res) => {
 });
 
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log(Listening on port ${port}...));
+app.listen(port, () => console.log(`Listening on port ${port}...`));
