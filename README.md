@@ -17,3 +17,4 @@
 - Updated sending links to Backend.  
 - Updated receiving links in Backend.
 - Updated processing links in form-process.js.
+- Updated reading sheets data.
