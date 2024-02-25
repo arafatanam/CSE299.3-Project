@@ -39,26 +39,7 @@ app.post("/getData", async (req, res) => {
     const formsClient = new google.auth.JWT(keys.client_email, null, keys.private_key, ["https://www.googleapis.com/auth/forms"]);
     await formsClient.authorize();
 
-
-    const form = await google.forms({ version: "v1", auth: formsClient }).forms.create({
-      requestBody: {
-        title: 'Assessment Form',
-        description: 'Please fill out this assessment form.',
-        questions: [
-          {
-            title: 'Student Name',
-            type: 'TEXT',
-          },
-          {
-            title: 'Student Age',
-            type: 'NUMBER',
-          },
-        ],
-      },
-    });
-    const formLink = form.data.editUrl;
     res.json({ studentInfoLink, assessmentLink, data });
-    console.log(formLink);
   }
   catch (error) {
     console.error(error);
