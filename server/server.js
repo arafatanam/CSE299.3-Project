@@ -59,7 +59,14 @@ async function createGoogleForm(questions) {
       body: JSON.stringify({ questions })
     });
     
-    const { formUrl } = await response.json();
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('Unexpected response format. Expected JSON.');
+    }
+    
+    const responseData = await response.json();
+    const { formUrl } = responseData;
     return formUrl;
   } catch (error) {
     console.error('Error creating Google Form:', error);
