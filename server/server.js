@@ -49,24 +49,37 @@ app.post("/getData", async (req, res) => {
   }
 });
 
+const auth = new google.auth.JWT(keys.client_email, null, keys.private_key, ['https://www.googleapis.com/auth/forms']);
+
 async function createGoogleForm(questions) {
   try {
-    const response = await fetch(googleScriptUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ questions })
+    // Initialize Google Forms API
+    const forms = google.forms({ version: 'v1', auth });
+
+    // Create new form
+    const form = await forms.forms.create({
+      requestBody: {
+        title: 'Your Form Title',
+        description: 'Your Form Description'
+      }
     });
-    
-    // Check if response is JSON
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('Unexpected response format. Expected JSON.');
+
+    const formId = form.data.formId;
+
+    // Add questions to the form
+    for (const question of questions) {
+      await forms.forms.update({
+        formId,
+        requestBody: {
+          title: question, 
+          
+        }
+      });
     }
+
     
-    const responseData = await response.json();
-    const { formUrl } = responseData;
+    const formUrl = 'https://docs.google.com/forms/d/${formId}/viewform';
+
     return formUrl;
   } catch (error) {
     console.error('Error creating Google Form:', error);
