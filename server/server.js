@@ -36,7 +36,7 @@ app.post("/getData", async (req, res) => {
     const spreadsheetId2 = getSpreadsheetIdFromLink(studentInfoLink);
     const cred = new google.auth.JWT(keys.client_email, null, keys.private_key, ["https://www.googleapis.com/auth/spreadsheets"]);
     const opt = { spreadsheetId, range: "A2:A" };
-    const stud = {spreadsheetId: spreadsheetId2, range: "A2:A"};
+    const stud = { spreadsheetId: spreadsheetId2, range: "A2:A" };
     await cred.authorize();
     const sheet = google.sheets({ version: "v4", auth: cred });
     const data = await sheet.spreadsheets.values.get(opt);
@@ -58,9 +58,34 @@ async function runSample(query) {
     credentials: require('./routes/keys.json'),
     scopes: 'https://www.googleapis.com/auth/drive',
   });
-  const forms = googleform.forms({version: 'v1',auth: authClient,});
-  const newForm = {info: {title: 'Assessment',},};
-  const res = await forms.forms.create({requestBody: newForm,});
+  const forms = googleform.forms({ version: 'v1', auth: authClient, });
+  const newForm = { info: { title: 'Assessment', }, };
+  const response = await forms.forms.create({ requestBody: newForm, });
+  console.log(response.data);
+  // return response.data;
+  const update = {
+    requests: [
+      {
+        createItem: {
+          item: {
+            title: 'Homework video',
+            videoItem: {
+              video: {
+                youtubeUri: 'https://www.youtube.com/watch?v=Lt5HqPvM-eI',
+              },
+            },
+          },
+          location: {
+            index: 0,
+          },
+        },
+      },
+    ],
+  };
+  const res = await forms.forms.batchUpdate({
+    formId: response.data.formId,
+    requestBody: update,
+  });
   console.log(res.data);
   return res.data;
 }
@@ -72,4 +97,4 @@ module.exports = runSample;
 
 
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log(`Listening on port ${port}...`));
+app.listen(port, () => console.log(Listening on port ${port}...));
