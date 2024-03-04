@@ -19,6 +19,4 @@
 - Updated processing links in form-process.js.
 - Updated reading sheets data.
 - Updated creating google sheet.
-- Integrated Google Form creation.
-- Google Form integration update.
-- Google Form API Integration.
+- Function to create google form. 
