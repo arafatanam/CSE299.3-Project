@@ -10,6 +10,8 @@ const bodyParser = require("body-parser");
 const { google } = require('googleapis');
 const keys = require('./routes/keys.json');
 const path = require('path');
+'use strict';
+const googleform = require('@googleapis/forms');
 
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
 app.use(passport.initialize());
@@ -51,18 +53,13 @@ app.post("/getData", async (req, res) => {
 });
 
 
-'use strict';
-
-const googleform = require('@googleapis/forms');
-const {authenticate} = require('@google-cloud/local-auth');
-
 async function runSample(query) {
   const authClient = new googleform.auth.GoogleAuth({
-    keyfilePath: path.join(__dirname, './routes/keys.json'),
+    credentials: require('./routes/keys.json'),
     scopes: 'https://www.googleapis.com/auth/drive',
   });
   const forms = googleform.forms({version: 'v1',auth: authClient,});
-  const newForm = {info: {title: 'Creating a new form in Node',},};
+  const newForm = {info: {title: 'Assessment',},};
   const res = await forms.forms.create({requestBody: newForm,});
   console.log(res.data);
   return res.data;
