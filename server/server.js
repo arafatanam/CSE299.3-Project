@@ -9,7 +9,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const { google } = require('googleapis');
 const keys = require('./routes/keys.json');
-const googleScriptUrl = 'https://script.google.com/macros/s/your_google_script_id/exec';
+const path = require('path');
 
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
 app.use(passport.initialize());
@@ -31,17 +31,18 @@ app.post("/getData", async (req, res) => {
   try {
     const { studentInfoLink, assessmentLink } = req.body;
     const spreadsheetId = getSpreadsheetIdFromLink(assessmentLink);
-    const sheet = new google.auth.JWT(keys.client_email, null, keys.private_key, ["https://www.googleapis.com/auth/spreadsheets"]);
+    const spreadsheetId2 = getSpreadsheetIdFromLink(studentInfoLink);
+    const cred = new google.auth.JWT(keys.client_email, null, keys.private_key, ["https://www.googleapis.com/auth/spreadsheets"]);
     const opt = { spreadsheetId, range: "A2:A" };
-    await sheet.authorize();
-    const gsapi = google.sheets({ version: "v4", auth: sheet });
-    const data = await gsapi.spreadsheets.values.get(opt);
+    const stud = {spreadsheetId: spreadsheetId2, range: "A2:A"};
+    await cred.authorize();
+    const sheet = google.sheets({ version: "v4", auth: cred });
+    const data = await sheet.spreadsheets.values.get(opt);
+    const data2 = await sheet.spreadsheets.values.get(stud);
     console.log(data.data.values);
-    const questions = data.data.values;
-    const formUrl = await createGoogleForm(questions);    
-    res.json({ formUrl });
+    console.log(data2.data.values);
+    res.json({ studentInfoLink, assessmentLink, data, data2 });
 
-    res.json({ studentInfoLink, assessmentLink, data});
   }
   catch (error) {
     console.error(error);
@@ -49,43 +50,29 @@ app.post("/getData", async (req, res) => {
   }
 });
 
-const auth = new google.auth.JWT(keys.client_email, null, keys.private_key, ['https://www.googleapis.com/auth/forms']);
 
-async function createGoogleForm(questions) {
-  try {
-    // Initialize Google Forms API
-    const forms = google.forms({ version: 'v1', auth });
+'use strict';
 
-    // Create new form
-    const form = await forms.forms.create({
-      requestBody: {
-        title: 'Your Form Title',
-        description: 'Your Form Description'
-      }
-    });
+const googleform = require('@googleapis/forms');
+const {authenticate} = require('@google-cloud/local-auth');
 
-    const formId = form.data.formId;
-
-    // Add questions to the form
-    for (const question of questions) {
-      await forms.forms.update({
-        formId,
-        requestBody: {
-          title: question, 
-          
-        }
-      });
-    }
-
-    
-    const formUrl = 'https://docs.google.com/forms/d/${formId}/viewform';
-
-    return formUrl;
-  } catch (error) {
-    console.error('Error creating Google Form:', error);
-    throw error;
-  }
+async function runSample(query) {
+  const authClient = new googleform.auth.GoogleAuth({
+    keyfilePath: path.join(__dirname, './routes/keys.json'),
+    scopes: 'https://www.googleapis.com/auth/drive',
+  });
+  const forms = googleform.forms({version: 'v1',auth: authClient,});
+  const newForm = {info: {title: 'Creating a new form in Node',},};
+  const res = await forms.forms.create({requestBody: newForm,});
+  console.log(res.data);
+  return res.data;
 }
+
+if (module === require.main) {
+  runSample().catch(console.error);
+}
+module.exports = runSample;
+
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
