@@ -51,9 +51,15 @@ app.post("/getData", async (req, res) => {
       questions.push(question);
     }
     console.log(questions);
-    const formCreationResponse = await runSample();
-    console.log(formCreationResponse);
-    res.json({ studentInfoLink, assessmentLink,assessmentDataCount, data, data2 });
+    let formLink = '';
+    for (let i = 0; i < assessmentDataCount; i++) {
+      const formCreationResponse = await runSample(questions[i]);
+      console.log(formCreationResponse);
+      if (i === 0) {
+        formLink = formCreationResponse.formUrl;
+      }
+    }
+    res.json({ studentInfoLink, assessmentLink, assessmentDataCount, data, data2, formLink });
   }
   catch (error) {
     console.error(error);
@@ -61,34 +67,33 @@ app.post("/getData", async (req, res) => {
   }
 });
 
-
-async function runSample(query) {
+async function runSample(question) {
   const authClient = new googleform.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
     scopes: 'https://www.googleapis.com/auth/drive',
   });
-  const forms = googleform.forms({ version: 'v1', auth: authClient, });
-  const newForm = { info: { title: 'Assessment', }, };
-  const response = await forms.forms.create({ requestBody: newForm, });
+  const forms = googleform.forms({ version: 'v1', auth: authClient });
+  const newForm = { info: { title: 'Assessment' } };
+  const response = await forms.forms.create({ requestBody: newForm });
   console.log(response.data);
   const update = {
     requests: [
       {
         createItem: {
           item: {
-            title: query,
-            textItem: {},
+            title: question,
+            textItem: {}
           },
           location: {
-            index: 0,
-          },
-        },
-      },
-    ],
+            index: 0
+          }
+        }
+      }
+    ]
   };
   const res = await forms.forms.batchUpdate({
     formId: response.data.formId,
-    requestBody: update,
+    requestBody: update
   });
   console.log(res.data);
   return res.data;
