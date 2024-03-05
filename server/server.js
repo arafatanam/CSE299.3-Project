@@ -43,8 +43,17 @@ app.post("/getData", async (req, res) => {
     const data2 = await sheet.spreadsheets.values.get(stud);
     console.log(data.data.values);
     console.log(data2.data.values);
-    res.json({ studentInfoLink, assessmentLink, data, data2 });
-
+    const assessmentDataCount = data.data.values ? data.data.values.length : 0;
+    console.log(assessmentDataCount);
+    const questions = [];
+    for (let i = 0; i < assessmentDataCount; i++) {
+      const question = data.data.values[i][0];
+      questions.push(question);
+    }
+    console.log(questions);
+    const formCreationResponse = await runSample();
+    console.log(formCreationResponse);
+    res.json({ studentInfoLink, assessmentLink,assessmentDataCount, data, data2 });
   }
   catch (error) {
     console.error(error);
@@ -62,18 +71,13 @@ async function runSample(query) {
   const newForm = { info: { title: 'Assessment', }, };
   const response = await forms.forms.create({ requestBody: newForm, });
   console.log(response.data);
-  // return response.data;
   const update = {
     requests: [
       {
         createItem: {
           item: {
-            title: 'Homework video',
-            videoItem: {
-              video: {
-                youtubeUri: 'https://www.youtube.com/watch?v=Lt5HqPvM-eI',
-              },
-            },
+            title: query,
+            textItem: {},
           },
           location: {
             index: 0,
@@ -89,12 +93,6 @@ async function runSample(query) {
   console.log(res.data);
   return res.data;
 }
-
-if (module === require.main) {
-  runSample().catch(console.error);
-}
-module.exports = runSample;
-
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(Listening on port ${port}...));
