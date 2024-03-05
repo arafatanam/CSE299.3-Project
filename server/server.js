@@ -51,15 +51,12 @@ app.post("/getData", async (req, res) => {
       questions.push(question);
     }
     console.log(questions);
-    let formLink = '';
-    for (let i = 0; i < assessmentDataCount; i++) {
-      const formCreationResponse = await runSample(questions[i]);
-      console.log(formCreationResponse);
-      if (i === 0) {
-        formLink = formCreationResponse.formUrl;
-      }
-    }
-    res.json({ studentInfoLink, assessmentLink, assessmentDataCount, data, data2, formLink });
+
+    // Create Google Form
+    const formCreationResponse = await createForm(questions);
+    console.log(formCreationResponse);
+
+    res.json({ studentInfoLink, assessmentLink, assessmentDataCount, data, data2, formLink: formCreationResponse.formUrl });
   }
   catch (error) {
     console.error(error);
@@ -67,7 +64,7 @@ app.post("/getData", async (req, res) => {
   }
 });
 
-async function runSample(question) {
+async function createForm(questions) {
   const authClient = new googleform.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
     scopes: 'https://www.googleapis.com/auth/drive',
@@ -76,28 +73,27 @@ async function runSample(question) {
   const newForm = { info: { title: 'Assessment' } };
   const response = await forms.forms.create({ requestBody: newForm });
   console.log(response.data);
-  const update = {
-    requests: [
-      {
-        createItem: {
-          item: {
-            title: question,
-            textItem: {}
-          },
-          location: {
-            index: 0
-          }
-        }
+  
+  const requests = questions.map((question, index) => ({
+    createItem: {
+      item: {
+        title: question,
+        textItem: {}
+      },
+      location: {
+        index: index
       }
-    ]
-  };
+    }
+  }));
+
   const res = await forms.forms.batchUpdate({
     formId: response.data.formId,
-    requestBody: update
+    requestBody: { requests }
   });
   console.log(res.data);
+
   return res.data;
 }
 
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log(Listening on port ${port}...));
+app.listen(port, () => console.log(`Listening on port ${port}...`));
