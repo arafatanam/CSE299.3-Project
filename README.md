@@ -22,4 +22,5 @@
 - Function to create google form. 
 - Google Form API Integration update.
 - Google Form Sample Assessment Link.
-- Uploaded Questions and Rubrics 
+- Uploaded Questions and Rubrics. 
+- Integration of Nodemailer with backend.
