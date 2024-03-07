@@ -43,7 +43,7 @@ app.post("/getData", async (req, res) => {
     const data = await sheet.spreadsheets.values.get(opt);
     const data2 = await sheet.spreadsheets.values.get(stud);
     // console.log(data.data.values);
-    console.log(data2.data.values);
+    // console.log(data2.data.values);
     const assessmentDataCount = data.data.values ? data.data.values.length : 0;
     const studentDataCount = data2.data.values ? data2.data.values.length : 0;
     // console.log(assessmentDataCount);
@@ -58,13 +58,16 @@ app.post("/getData", async (req, res) => {
       studEmails.push(studEmail);
     }
     // console.log(questions);
-    const formCreationResponse = await createForm(questions);
+    const formLink = await createForm(questions);
     // console.log(formCreationResponse);
-
-    const emails = data2.data.values.map(row => row[0]);
-    const formLink = formCreationResponse.formUrl;
-    await sendEmails(studEmails, formLink);
-    res.json({ studentInfoLink, assessmentLink, assessmentDataCount,studentDataCount, data, data2, formLink: formCreationResponse.formUrl });
+    // const formLink = formCreationResponse.formUrl;
+    const emailsSent = await sendEmails(studEmails, formLink);
+    if (emailsSent) {
+      console.log("Emails were sent successfully");
+    } else {
+      console.log("Failed to send emails");
+    }
+    res.json({ studentInfoLink, assessmentLink, assessmentDataCount, studentDataCount, data, data2, formLink });
   }
   catch (error) {
     console.error(error);
@@ -80,7 +83,8 @@ async function createForm(questions) {
   const forms = googleform.forms({ version: 'v1', auth: authClient });
   const newForm = { info: { title: 'Assessment' } };
   const response = await forms.forms.create({ requestBody: newForm });
-  console.log(response.data);
+  const formId = response.data.formId;
+  // console.log(response.data);
 
   const requests = questions.map((question, index) => ({
     createItem: {
@@ -94,39 +98,51 @@ async function createForm(questions) {
     }
   }));
 
-  const res = await forms.forms.batchUpdate({
-    formId: response.data.formId,
-    requestBody: { requests }
+  await forms.forms.batchUpdate({
+    formId: formId,
+    resource: { requests }
   });
-  return res.data;
+
+  const formLink = `https://docs.google.com/forms/d/${formId}`;
+  return formLink;
+  // const res = await forms.forms.batchUpdate({
+  //   formId: response.data.formId,
+  //   requestBody: { requests }
+  // });
+  // return res.data;
+
 }
 
 async function sendEmails(studEmails, formLink) {
   try {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
+      host: "smtp.ethereal.email",
+      port: 587,
+      secure: false,
       auth: {
-        user: process.env.EMAIL, 
-        pass: process.env.PASS
-      }
+        user: process.env.EMAIL,
+        pass: process.env.PASS,
+      },
     });
 
     const mailOptions = {
-      from: 'arafatanam01@gmail.com',
-      subject: 'Assessment Form',
-      text: `Here is the assessment form link: ${formLink}`
+      from: process.env.EMAIL,
+      to: studEmails,
+      subject: "Assessment Google Form",
+      text: `Here is the assessment form link: ${formLink}`,
     };
 
     for (const email of studEmails) {
       mailOptions.to = email;
       await transporter.sendMail(mailOptions);
     }
+    return true;
   } catch (error) {
     console.error('Error sending emails:', error);
-    throw new Error('Failed to send emails');
+    return false;
   }
 }
-
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
