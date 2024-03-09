@@ -67,7 +67,7 @@ app.post("/getData", async (req, res) => {
     } else {
       console.log("Failed to send emails");
     }
-    res.json({ studentInfoLink, assessmentLink, assessmentDataCount, studentDataCount, data, data2, formLink});
+    res.json({ studentInfoLink, assessmentLink, assessmentDataCount, studentDataCount, data, data2, formLink });
   }
   catch (error) {
     console.error(error);
@@ -81,32 +81,43 @@ async function createForm(questions) {
     scopes: 'https://www.googleapis.com/auth/drive',
   });
   const forms = googleform.forms({ version: 'v1', auth: authClient });
-  const newForm = { info: { title: 'Assessment' } };
+  // const newForm = { info: { title: 'Assessment' } };
+  const newForm = {
+    title: 'Assessment',
+    items: questions.map((question, index) => ({
+      title: question,
+      type: "TEXT"
+    }))
+  };
   const response = await forms.forms.create({ requestBody: newForm });
   const formId = response.data.formId;
   console.log(response.data);
 
-  const requests = questions.map((question, index) => ({
-    createItem: {
-      item: {
-        title: question,
-        textItem: {
-          type: 'TEXT',
-          helpText: 'Enter your answer here',
-        }
-      },
-      location: {
-        index: index
-      }
-    }
-  }));
+  
+
+  // const requests = questions.map((question, index) => ({
+  //   createItem: {
+  //     item: {
+  //       title: question,
+  //       textItem: {
+  //         type: "TEXT",
+  //         validation: {
+  //           type: "TEXT"
+  //         }
+  //       }
+  //     },
+  //     location: {
+  //       index: index
+  //     }
+  //   }
+  // }));
 
   await forms.forms.batchUpdate({
     formId: formId,
     resource: { requests }
   });
 
-  const formLink = https://docs.google.com/forms/d/${formId};
+  const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
 
@@ -127,7 +138,7 @@ async function sendEmails(studEmails, formLink) {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
-      text: Here is the assessment form link: ${formLink},
+      text: `Here is the assessment form link: ${formLink}`,
     };
 
     for (const email of studEmails) {
@@ -154,4 +165,4 @@ app.post("/makeRestApiCall", async (req, res) => {
 });
 
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log(Listening on port ${port}...));
+app.listen(port, () => console.log(`Listening on port ${port}...`));
