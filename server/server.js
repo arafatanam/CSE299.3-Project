@@ -67,7 +67,7 @@ app.post("/getData", async (req, res) => {
     } else {
       console.log("Failed to send emails");
     }
-    res.json({ studentInfoLink, assessmentLink, assessmentDataCount, studentDataCount, data, data2, formLink });
+    res.json({ studentInfoLink, assessmentLink, assessmentDataCount, studentDataCount, data, data2, formLink});
   }
   catch (error) {
     console.error(error);
@@ -84,7 +84,7 @@ async function createForm(questions) {
   const newForm = { info: { title: 'Assessment' } };
   const response = await forms.forms.create({ requestBody: newForm });
   const formId = response.data.formId;
-  // console.log(response.data);
+  console.log(response.data);
 
   const requests = questions.map((question, index) => ({
     createItem: {
@@ -105,12 +105,6 @@ async function createForm(questions) {
 
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
-  // const res = await forms.forms.batchUpdate({
-  //   formId: response.data.formId,
-  //   requestBody: { requests }
-  // });
-  // return res.data;
-
 }
 
 async function sendEmails(studEmails, formLink) {
@@ -143,6 +137,18 @@ async function sendEmails(studEmails, formLink) {
     return false;
   }
 }
+
+app.post("/makeRestApiCall", async (req, res) => {
+  try {
+    // Example REST API call using axios
+    const response = await axios.post("https://example.com/api", req.body);
+    // Modify the response as needed
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error making REST API call:", error);
+    res.status(500).json({ error: "Failed to make REST API call" });
+  }
+});
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
