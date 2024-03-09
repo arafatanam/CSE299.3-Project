@@ -90,7 +90,10 @@ async function createForm(questions) {
     createItem: {
       item: {
         title: question,
-        textItem: {}
+        textItem: {
+          type: 'TEXT',
+          helpText: 'Enter your answer here',
+        }
       },
       location: {
         index: index
@@ -103,7 +106,7 @@ async function createForm(questions) {
     resource: { requests }
   });
 
-  const formLink = `https://docs.google.com/forms/d/${formId}`;
+  const formLink = https://docs.google.com/forms/d/${formId};
   return formLink;
 }
 
@@ -124,7 +127,7 @@ async function sendEmails(studEmails, formLink) {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
-      text: `Here is the assessment form link: ${formLink}`,
+      text: Here is the assessment form link: ${formLink},
     };
 
     for (const email of studEmails) {
@@ -151,4 +154,4 @@ app.post("/makeRestApiCall", async (req, res) => {
 });
 
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log(`Listening on port ${port}...`));
+app.listen(port, () => console.log(Listening on port ${port}...));
