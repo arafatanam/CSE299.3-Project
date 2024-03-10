@@ -68,6 +68,18 @@ app.post("/getData", async (req, res) => {
     } else {
       console.log("Failed to send emails");
     }
+
+    const postData = {
+      title: 'foo',
+      body: 'bar',
+      userId: 1
+    };
+    const response = await axios.post("https://jsonplaceholder.typicode.com/posts", postData);
+
+    console.log("REST API Call Response:");
+    console.log("Status Code:", response.status);
+    console.log("Response Data:", response.data);
+    
     res.json({ studentInfoLink, assessmentLink, assessmentDataCount, studentDataCount, data, data2, formLink });
   }
   catch (error) {
@@ -105,7 +117,7 @@ async function createForm(questions) {
     resource: { requests }
   });
 
-  const formLink = https://docs.google.com/forms/d/${formId};
+  const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
 
@@ -126,7 +138,7 @@ async function sendEmails(studEmails, formLink) {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
-      text: Here is the assessment form link: ${formLink},
+      text: `Here is the assessment form link: ${formLink}`,
     };
 
     for (const email of studEmails) {
