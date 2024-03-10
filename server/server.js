@@ -13,6 +13,7 @@ const path = require('path');
 'use strict';
 const googleform = require('@googleapis/forms');
 const nodemailer = require('nodemailer');
+const axios = require("axios");
 
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
 app.use(passport.initialize());
@@ -81,43 +82,30 @@ async function createForm(questions) {
     scopes: 'https://www.googleapis.com/auth/drive',
   });
   const forms = googleform.forms({ version: 'v1', auth: authClient });
-  // const newForm = { info: { title: 'Assessment' } };
-  const newForm = {
-    title: 'Assessment',
-    items: questions.map((question, index) => ({
-      title: question,
-      type: "TEXT"
-    }))
-  };
+  const newForm = { info: { title: 'Assessment' } };
   const response = await forms.forms.create({ requestBody: newForm });
   const formId = response.data.formId;
   console.log(response.data);
 
-  
 
-  // const requests = questions.map((question, index) => ({
-  //   createItem: {
-  //     item: {
-  //       title: question,
-  //       textItem: {
-  //         type: "TEXT",
-  //         validation: {
-  //           type: "TEXT"
-  //         }
-  //       }
-  //     },
-  //     location: {
-  //       index: index
-  //     }
-  //   }
-  // }));
+  const requests = questions.map((question, index) => ({
+    createItem: {
+      item: {
+        title: question,
+        textItem: {}
+      },
+      location: {
+        index: index
+      }
+    }
+  }));
 
   await forms.forms.batchUpdate({
     formId: formId,
     resource: { requests }
   });
 
-  const formLink = `https://docs.google.com/forms/d/${formId}`;
+  const formLink = https://docs.google.com/forms/d/${formId};
   return formLink;
 }
 
@@ -138,7 +126,7 @@ async function sendEmails(studEmails, formLink) {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
-      text: `Here is the assessment form link: ${formLink}`,
+      text: Here is the assessment form link: ${formLink},
     };
 
     for (const email of studEmails) {
@@ -154,9 +142,23 @@ async function sendEmails(studEmails, formLink) {
 
 app.post("/makeRestApiCall", async (req, res) => {
   try {
-    // Example REST API call using axios
-    const response = await axios.post("https://example.com/api", req.body);
-    // Modify the response as needed
+    const postData = {
+      title: 'foo',
+      body: 'bar',
+      userId: 1
+    };
+
+    const response = await axios.post("https://jsonplaceholder.typicode.com/posts", postData);
+
+    console.log("REST API Request Details:");
+    console.log("URL:", response.config.url);
+    console.log("Method:", response.config.method);
+    console.log("Request Body:", response.config.data);
+
+    console.log("REST API Call Response:");
+    console.log("Status Code:", response.status);
+    console.log("Response Data:", response.data);
+
     res.json(response.data);
   } catch (error) {
     console.error("Error making REST API call:", error);
