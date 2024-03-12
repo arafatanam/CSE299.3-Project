@@ -67,19 +67,7 @@ app.post("/getData", async (req, res) => {
       console.log("Emails were sent successfully");
     } else {
       console.log("Failed to send emails");
-    }
-
-    const postData = {
-      title: 'foo',
-      body: 'bar',
-      userId: 1
-    };
-    const response = await axios.post("https://jsonplaceholder.typicode.com/posts", postData);
-
-    console.log("REST API Call Response:");
-    console.log("Status Code:", response.status);
-    console.log("Response Data:", response.data);
-    
+    }   
     res.json({ studentInfoLink, assessmentLink, assessmentDataCount, studentDataCount, data, data2, formLink });
   }
   catch (error) {
@@ -152,29 +140,14 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
-app.post("/makeRestApiCall", async (req, res) => {
+app.post("/pyscript", async (req, res) => {
   try {
-    const postData = {
-      title: 'foo',
-      body: 'bar',
-      userId: 1
-    };
-
-    const response = await axios.post("https://jsonplaceholder.typicode.com/posts", postData);
-
-    console.log("REST API Request Details:");
-    console.log("URL:", response.config.url);
-    console.log("Method:", response.config.method);
-    console.log("Request Body:", response.config.data);
-
-    console.log("REST API Call Response:");
-    console.log("Status Code:", response.status);
-    console.log("Response Data:", response.data);
-
-    res.json(response.data);
+    const prompt = req.body.prompt;
+    const result = await executePythonScript(prompt);
+    res.json({ result });
   } catch (error) {
-    console.error("Error making REST API call:", error);
-    res.status(500).json({ error: "Failed to make REST API call" });
+    console.error('Error executing Python script:', error);
+    res.status(500).json({ error: "Failed to execute Python script" });
   }
 });
 
