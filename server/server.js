@@ -105,7 +105,7 @@ async function createForm(questions) {
     resource: { requests }
   });
 
-  const formLink = `https://docs.google.com/forms/d/${formId}`;
+  const formLink = https://docs.google.com/forms/d/${formId};
   return formLink;
 }
 
@@ -126,7 +126,7 @@ async function sendEmails(studEmails, formLink) {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
-      text: `Here is the assessment form link: ${formLink}`,
+      text: Here is the assessment form link: ${formLink},
     };
 
     for (const email of studEmails) {
@@ -139,6 +139,20 @@ async function sendEmails(studEmails, formLink) {
     return false;
   }
 }
+
+async function executePythonScript(prompt) {
+  return new Promise((resolve, reject) => {
+    const { spawn } = require('child_process');
+    const pyprog = spawn('python', ['script.py', prompt]);
+    pyprog.stdout.on('data', (data) => {
+      resolve(data.toString());
+    });
+    pyprog.stderr.on('data', (data) => {
+      reject(data.toString());
+    });
+  });
+}
+
 
 app.post("/pyscript", async (req, res) => {
   try {
