@@ -14,6 +14,8 @@ const path = require('path');
 const googleform = require('@googleapis/forms');
 const nodemailer = require('nodemailer');
 const axios = require("axios");
+const {Configuration, tinyAIapi} = require("TinyAI");
+app.use(express.json());
 
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
 app.use(passport.initialize());
@@ -105,7 +107,7 @@ async function createForm(questions) {
     resource: { requests }
   });
 
-  const formLink = https://docs.google.com/forms/d/${formId};
+  const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
 
@@ -126,7 +128,7 @@ async function sendEmails(studEmails, formLink) {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
-      text: Here is the assessment form link: ${formLink},
+      text: `Here is the assessment form link: ${formLink}`,
     };
 
     for (const email of studEmails) {
@@ -163,6 +165,17 @@ app.post("/pyscript", async (req, res) => {
     console.error('Error executing Python script:', error);
     res.status(500).json({ error: "Failed to execute Python script" });
   }
+});
+
+const configuration = new Configuration ({
+  apiKey: process.env.API,
+});
+const tinyAI = new tinyAIapi(configuration);
+
+app.post("/find-complexity", async (req, res) => {
+  try {
+    return res.status(200).json({message: "Working",});
+  } catch (error) {}
 });
 
 const port = process.env.PORT || 8080;
