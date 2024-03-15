@@ -14,7 +14,7 @@ const path = require('path');
 const googleform = require('@googleapis/forms');
 const nodemailer = require('nodemailer');
 const axios = require("axios");
-const {Configuration, tinyAIapi} = require("TinyAI");
+const {Configuration, OpenAIApi} = require("openai");
 app.use(express.json());
 
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -107,7 +107,7 @@ async function createForm(questions) {
     resource: { requests }
   });
 
-  const formLink = `https://docs.google.com/forms/d/${formId}`;
+  const formLink = https://docs.google.com/forms/d/${formId};
   return formLink;
 }
 
@@ -128,7 +128,7 @@ async function sendEmails(studEmails, formLink) {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
-      text: `Here is the assessment form link: ${formLink}`,
+      text: Here is the assessment form link: ${formLink},
     };
 
     for (const email of studEmails) {
@@ -142,41 +142,31 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
-async function executePythonScript(prompt) {
+async function executePythonScript(messages) {
   return new Promise((resolve, reject) => {
     const { spawn } = require('child_process');
-    const pyprog = spawn('python', ['script.py', prompt]);
+    const pyprog = spawn('python', ['script.py']);
+
+    let output = "";
+
     pyprog.stdout.on('data', (data) => {
-      resolve(data.toString());
+      output += data.toString();
     });
+
     pyprog.stderr.on('data', (data) => {
       reject(data.toString());
     });
+
+    pyprog.on('close', () => {
+      resolve(output);
+    });
+
+    // Send messages to the Python script
+    pyprog.stdin.write(JSON.stringify(messages));
+    pyprog.stdin.end();
   });
 }
 
 
-app.post("/pyscript", async (req, res) => {
-  try {
-    const prompt = req.body.prompt;
-    const result = await executePythonScript(prompt);
-    res.json({ result });
-  } catch (error) {
-    console.error('Error executing Python script:', error);
-    res.status(500).json({ error: "Failed to execute Python script" });
-  }
-});
-
-const configuration = new Configuration ({
-  apiKey: process.env.API,
-});
-const tinyAI = new tinyAIapi(configuration);
-
-app.post("/find-complexity", async (req, res) => {
-  try {
-    return res.status(200).json({message: "Working",});
-  } catch (error) {}
-});
-
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log(`Listening on port ${port}...`));
+app.listen(port, () => console.log(Listening on port ${port}...));
