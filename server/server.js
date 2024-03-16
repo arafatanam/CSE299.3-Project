@@ -13,10 +13,11 @@ const path = require('path');
 'use strict';
 const googleform = require('@googleapis/forms');
 const nodemailer = require('nodemailer');
-const axios = require("axios");
-const {Configuration, OpenAIApi} = require("openai");
-app.use(express.json());
+// const axios = require("axios");
+const { spawn } = require('child_process');
 
+app.use(express.json());
+app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -142,31 +143,33 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
-async function executePythonScript(messages) {
+function runScript() {
   return new Promise((resolve, reject) => {
-    const { spawn } = require('child_process');
-    const pyprog = spawn('python', ['script.py']);
-
-    let output = "";
-
-    pyprog.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-
-    pyprog.stderr.on('data', (data) => {
-      reject(data.toString());
-    });
-
-    pyprog.on('close', () => {
-      resolve(output);
-    });
-
-    // Send messages to the Python script
-    pyprog.stdin.write(JSON.stringify(messages));
-    pyprog.stdin.end();
+      const python = spawn('python', ['script.py']);
+      python.stdout.on('data', (data) => {
+          console.log(`stdout: ${data}`);
+      });
+      python.stderr.on('data', (data) => {
+          console.error(`stderr: ${data}`);
+          reject(data);
+      });
+      python.on('close', (code) => {
+          console.log(`child process exited with code ${code}`);
+          resolve();
+      });
   });
 }
 
+app.post("/trigger-script", async (req, res) => {
+  try {
+      await runScript();
+      res.status(200).json({ message: "Script executed successfully" });
+  } catch (error) {
+      console.error("Error running script:", error);
+      res.status(500).json({ error: "Failed to execute script" });
+  }
+});
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
