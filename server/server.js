@@ -162,8 +162,21 @@ function runScript() {
 
 app.post("/trigger-script", async (req, res) => {
   try {
-      await runScript();
-      res.status(200).json({ message: "Script executed successfully" });
+      const { role, content } = req.body;  // Assuming role and content are provided in the request body
+      const pythonProcess = spawn('python', ['script.py', role, content]);
+      
+      pythonProcess.stdout.on('data', (data) => {
+          console.log(`stdout: ${data}`);
+      });
+      
+      pythonProcess.stderr.on('data', (data) => {
+          console.error(`stderr: ${data}`);
+      });
+      
+      pythonProcess.on('close', (code) => {
+          console.log(`child process exited with code ${code}`);
+          res.status(200).json({ message: "Script executed successfully" });
+      });
   } catch (error) {
       console.error("Error running script:", error);
       res.status(500).json({ error: "Failed to execute script" });
@@ -172,4 +185,3 @@ app.post("/trigger-script", async (req, res) => {
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
