@@ -74,6 +74,7 @@ app.post("/getData", async (req, res) => {
     } else {
       console.log("Failed to send emails");
     }
+    await runScript(questions);
     res.json({ studentInfoLink, assessmentLink, assessmentDataCount, studentDataCount, data, data2, formLink });
   }
   catch (error) {
@@ -155,16 +156,22 @@ async function sendEmails(studEmails, formLink) {
 }
 
 
-function runScript() {
+async function runScript(inputData) {
   return new Promise((resolve, reject) => {
-    const python = spawn('python', ['script.py']);
+    const python = spawn('python', ['script.py', JSON.stringify(inputData)]);
+
+
     python.stdout.on('data', (data) => {
       console.log(`stdout: ${data}`);
     });
+
+
     python.stderr.on('data', (data) => {
       console.error(`stderr: ${data}`);
       reject(data);
     });
+
+
     python.on('close', (code) => {
       console.log(`child process exited with code ${code}`);
       resolve();
@@ -198,3 +205,6 @@ app.post("/trigger-script", async (req, res) => {
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
+
+
