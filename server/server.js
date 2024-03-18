@@ -16,6 +16,7 @@ const nodemailer = require('nodemailer');
 // const axios = require("axios");
 const { spawn } = require('child_process');
 
+
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -25,6 +26,7 @@ app.use(cors({ origin: "http://localhost:3000", methods: "GET,POST,PUT,DELETE", 
 app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
+
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -33,6 +35,7 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
+
 
 app.post("/getData", async (req, res) => {
   try {
@@ -70,7 +73,7 @@ app.post("/getData", async (req, res) => {
       console.log("Emails were sent successfully");
     } else {
       console.log("Failed to send emails");
-    }   
+    }
     res.json({ studentInfoLink, assessmentLink, assessmentDataCount, studentDataCount, data, data2, formLink });
   }
   catch (error) {
@@ -78,6 +81,7 @@ app.post("/getData", async (req, res) => {
     res.status(500).json({ error: "Failed to process data" });
   }
 });
+
 
 async function createForm(questions) {
   const authClient = new googleform.auth.GoogleAuth({
@@ -89,6 +93,8 @@ async function createForm(questions) {
   const response = await forms.forms.create({ requestBody: newForm });
   const formId = response.data.formId;
   console.log(response.data);
+
+
 
 
   const requests = questions.map((question, index) => ({
@@ -103,14 +109,17 @@ async function createForm(questions) {
     }
   }));
 
+
   await forms.forms.batchUpdate({
     formId: formId,
     resource: { requests }
   });
 
+
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
+
 
 async function sendEmails(studEmails, formLink) {
   try {
@@ -125,12 +134,14 @@ async function sendEmails(studEmails, formLink) {
       },
     });
 
+
     const mailOptions = {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
       text: `Here is the assessment form link: ${formLink}`,
     };
+
 
     for (const email of studEmails) {
       mailOptions.to = email;
@@ -143,45 +154,47 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
+
 function runScript() {
   return new Promise((resolve, reject) => {
-      const python = spawn('python', ['script.py']);
-      python.stdout.on('data', (data) => {
-          console.log(`stdout: ${data}`);
-      });
-      python.stderr.on('data', (data) => {
-          console.error(`stderr: ${data}`);
-          reject(data);
-      });
-      python.on('close', (code) => {
-          console.log(`child process exited with code ${code}`);
-          resolve();
-      });
+    const python = spawn('python', ['script.py']);
+    python.stdout.on('data', (data) => {
+      console.log(`stdout: ${data}`);
+    });
+    python.stderr.on('data', (data) => {
+      console.error(`stderr: ${data}`);
+      reject(data);
+    });
+    python.on('close', (code) => {
+      console.log(`child process exited with code ${code}`);
+      resolve();
+    });
   });
 }
 
+
+runScript().then(() => {
+  console.log("Script executed successfully on backend startup.");
+}).catch((error) => {
+  console.error("Error executing script on backend startup:", error);
+});
+
+
 app.post("/trigger-script", async (req, res) => {
   try {
-      const { role, content } = req.body;  // Assuming role and content are provided in the request body
-      const pythonProcess = spawn('python', ['script.py', role, content]);
-      
-      pythonProcess.stdout.on('data', (data) => {
-          console.log(`stdout: ${data}`);
-      });
-      
-      pythonProcess.stderr.on('data', (data) => {
-          console.error(`stderr: ${data}`);
-      });
-      
-      pythonProcess.on('close', (code) => {
-          console.log(`child process exited with code ${code}`);
-          res.status(200).json({ message: "Script executed successfully" });
-      });
-  } catch (error) {
-      console.error("Error running script:", error);
+    runScript().then(() => {
+      console.log("Script executed successfully via trigger.");
+      res.status(200).json({ message: "Script executed successfully" });
+    }).catch((error) => {
+      console.error("Error executing script via trigger:", error);
       res.status(500).json({ error: "Failed to execute script" });
+    });
+  } catch (error) {
+    console.error("Error running script:", error);
+    res.status(500).json({ error: "Failed to execute script" });
   }
 });
+
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
