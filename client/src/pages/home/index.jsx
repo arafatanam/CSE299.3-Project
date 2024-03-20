@@ -8,7 +8,7 @@ function Home(userDetails) {
     const [studentInfoLink, setStudentInfoLink] = useState("");
     const [assessmentLink, setAssessmentLink] = useState("");
     const [receivedLinks, setReceivedLinks] = useState(null);
-    const [pdfFile, setPdfFile] = useState(null);
+    const [pdfFiles, setPdfFiles] = useState([]);
 
 
     const handleSubmit = async () => {
@@ -36,8 +36,8 @@ function Home(userDetails) {
 
 
     const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        setPdfFile(file);
+        const files = e.target.files;
+        setPdfFiles([...pdfFiles, ...files]); // Append new files to existing files
     };
 
 
@@ -64,14 +64,17 @@ function Home(userDetails) {
                             className={styles.input}
                         />
                     </div>
-                    <div>
-                        <p>Upload PDF File</p>
+                    <div className={styles.file_input_container}>
+                        <p className={styles.file_input_label}>Upload PDF Files</p>
                         <input
                             type="file"
                             accept=".pdf"
                             onChange={handleFileChange}
-                            className={styles.input}
-                        />
+                            className={styles.file_input}
+                            multiple
+                        /><button className={styles.btn2}>
+                        Upload
+                    </button>
                     </div>
                     <div>
                         <button className={styles.btn} onClick={handleSubmit}>
@@ -89,8 +92,3 @@ function Home(userDetails) {
 
 
 export default Home;
-
-
-
-
-
