@@ -49,11 +49,8 @@ app.post("/getData", async (req, res) => {
     const sheet = google.sheets({ version: "v4", auth: cred });
     const data = await sheet.spreadsheets.values.get(opt);
     const data2 = await sheet.spreadsheets.values.get(stud);
-    // console.log(data.data.values);
-    // console.log(data2.data.values);
     const assessmentDataCount = data.data.values ? data.data.values.length : 0;
     const studentDataCount = data2.data.values ? data2.data.values.length : 0;
-    // console.log(assessmentDataCount);
     const questions = [];
     for (let i = 0; i < assessmentDataCount; i++) {
       const question = data.data.values[i][0];
@@ -64,10 +61,7 @@ app.post("/getData", async (req, res) => {
       const studEmail = data2.data.values[i][0];
       studEmails.push(studEmail);
     }
-    // console.log(questions);
     const formLink = await createForm(questions);
-    // console.log(formCreationResponse);
-    // const formLink = formCreationResponse.formUrl;
     const emailsSent = await sendEmails(studEmails, formLink);
     if (emailsSent) {
       console.log("Emails were sent successfully");
@@ -156,55 +150,16 @@ async function sendEmails(studEmails, formLink) {
 }
 
 
-async function runScript(inputData) {
-  return new Promise((resolve, reject) => {
-    const python = spawn('python', ['script.py', JSON.stringify(inputData)]);
-
-
-    python.stdout.on('data', (data) => {
-      console.log(`stdout: ${data}`);
-    });
-
-
-    python.stderr.on('data', (data) => {
-      console.error(`stderr: ${data}`);
-      reject(data);
-    });
-
-
-    python.on('close', (code) => {
-      console.log(`child process exited with code ${code}`);
-      resolve();
-    });
-  });
-}
-
-
-runScript().then(() => {
-  console.log("Script executed successfully on backend startup.");
-}).catch((error) => {
-  console.error("Error executing script on backend startup:", error);
-});
-
-
-app.post("/trigger-script", async (req, res) => {
-  try {
-    runScript().then(() => {
-      console.log("Script executed successfully via trigger.");
-      res.status(200).json({ message: "Script executed successfully" });
-    }).catch((error) => {
-      console.error("Error executing script via trigger:", error);
-      res.status(500).json({ error: "Failed to execute script" });
-    });
-  } catch (error) {
-    console.error("Error running script:", error);
-    res.status(500).json({ error: "Failed to execute script" });
+app.post("/uploadFiles", (req, res) => {
+  if (!req.files || Object.keys(req.files).length === 0) {
+    return res.status(400).send('No files were uploaded.');
   }
+  const uploadedFiles = req.files.files;
+  const fileNames = uploadedFiles.map(file => file.name);
+  console.log("Uploaded files:", fileNames);
+  res.json({ uploadedFiles: fileNames });
 });
 
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
-
