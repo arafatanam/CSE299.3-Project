@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import styles from "./styles.module.css";
 import axios from "axios";
 
+
 function Home(userDetails) {
     const user = userDetails.user;
     const [studentInfoLink, setStudentInfoLink] = useState("");
     const [assessmentLink, setAssessmentLink] = useState("");
     const [receivedLinks, setReceivedLinks] = useState(null);
     const [pdfFiles, setPdfFiles] = useState([]);
+
 
     const handleSubmit = async () => {
         try {
@@ -27,32 +29,41 @@ function Home(userDetails) {
         }
     };
 
+
+    const handleUpload = async () => {
+        try {
+            const formData = new FormData();
+            pdfFiles.forEach((file) => {
+                formData.append("pdfFiles", file);
+                console.log("Uploading File:", file.name);
+            });
+
+
+            const response = await axios.post("http://localhost:8080/uploadFiles", formData);
+
+
+            pdfFiles.forEach((file) => {
+                console.log("Uploaded File:", file.name);
+            });
+
+
+        } catch (error) {
+            console.error("Error uploading files:", error);
+            alert("An error occurred while uploading files.");
+        }
+    };
+
+
     const handleLogout = () => {
         window.open(`${process.env.REACT_APP_API_URL}/auth/logout`, "_self");
     };
+
 
     const handleFileChange = (e) => {
         const files = e.target.files;
         setPdfFiles([...pdfFiles, ...files]);
     };
 
-    const handleUpload = async () => {
-        try {
-            const formData = new FormData();
-            pdfFiles.forEach(file => {
-                formData.append('files', file);
-            });
-            const response = await axios.post("http://localhost:8080/uploadFiles", formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-            console.log("Upload response:", response);
-        } catch (error) {
-            console.error("Error uploading files:", error);
-            alert("An error occurred while uploading files.");
-        }
-    };
 
     return (
         <div className={styles.container}>
@@ -82,6 +93,7 @@ function Home(userDetails) {
                         <input
                             type="file"
                             accept=".pdf"
+                            value={pdfFiles}
                             onChange={handleFileChange}
                             className={styles.file_input}
                             multiple
@@ -104,4 +116,8 @@ function Home(userDetails) {
     );
 }
 
+
 export default Home;
+
+
+
