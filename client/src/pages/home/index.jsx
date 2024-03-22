@@ -2,14 +2,12 @@ import React, { useState } from "react";
 import styles from "./styles.module.css";
 import axios from "axios";
 
-
 function Home(userDetails) {
     const user = userDetails.user;
     const [studentInfoLink, setStudentInfoLink] = useState("");
     const [assessmentLink, setAssessmentLink] = useState("");
     const [receivedLinks, setReceivedLinks] = useState(null);
     const [pdfFiles, setPdfFiles] = useState([]);
-
 
     const handleSubmit = async () => {
         try {
@@ -29,41 +27,36 @@ function Home(userDetails) {
         }
     };
 
-
     const handleUpload = async () => {
         try {
+            if (pdfFiles.length === 0) {
+                alert("Please select PDF files to upload.");
+                return;
+            }
             const formData = new FormData();
             pdfFiles.forEach((file) => {
                 formData.append("pdfFiles", file);
                 console.log("Uploading File:", file.name);
             });
-
-
             const response = await axios.post("http://localhost:8080/uploadFiles", formData);
-
-
             pdfFiles.forEach((file) => {
                 console.log("Uploaded File:", file.name);
             });
-
-
+            setPdfFiles(response.data);
         } catch (error) {
             console.error("Error uploading files:", error);
             alert("An error occurred while uploading files.");
         }
     };
 
-
     const handleLogout = () => {
         window.open(`${process.env.REACT_APP_API_URL}/auth/logout`, "_self");
     };
-
 
     const handleFileChange = (e) => {
         const files = e.target.files;
         setPdfFiles([...pdfFiles, ...files]);
     };
-
 
     return (
         <div className={styles.container}>
@@ -116,8 +109,4 @@ function Home(userDetails) {
     );
 }
 
-
 export default Home;
-
-
-
