@@ -13,7 +13,6 @@ const path = require('path');
 'use strict';
 const googleform = require('@googleapis/forms');
 const nodemailer = require('nodemailer');
-// const axios = require("axios");
 const { spawn } = require('child_process');
 
 
@@ -151,15 +150,28 @@ async function sendEmails(studEmails, formLink) {
 
 
 app.post("/uploadFiles", (req, res) => {
-  if (!req.files || Object.keys(req.files).length === 0) {
-    return res.status(400).send('No files were uploaded.');
-  }
-  const uploadedFiles = req.files.files;
-  const fileNames = uploadedFiles.map(file => file.name);
-  console.log("Uploaded files:", fileNames);
-  res.json({ uploadedFiles: fileNames });
+  upload(req, res, function (err) {
+    if (err instanceof multer.MulterError) {
+      return res.status(500).json({ error: err.message });
+    } else if (err) {
+      return res.status(500).json({ error: "Failed to upload files." });
+    }
+
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).send('No files were uploaded.');
+    }
+
+
+    const uploadedFiles = req.files.map(file => file.originalname);
+    console.log("Uploaded files:", uploadedFiles);
+    res.json({ uploadedFiles });
+  });
 });
 
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
+
+
