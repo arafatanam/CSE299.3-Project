@@ -13,7 +13,9 @@ const path = require('path');
 'use strict';
 const googleform = require('@googleapis/forms');
 const nodemailer = require('nodemailer');
+// const axios = require("axios");
 const { spawn } = require('child_process');
+const multer = require('multer');
 
 
 app.use(express.json());
@@ -170,8 +172,19 @@ app.post("/uploadFiles", (req, res) => {
 });
 
 
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './uploads');
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname);
+  }
+});
+
+
+const upload = multer({ storage: storage }).array('files');
+
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
-
+s
