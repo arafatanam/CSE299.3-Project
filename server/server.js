@@ -4,21 +4,26 @@ const cors = require("cors");
 const multer = require('multer');
 const mongoose = require('mongoose');
 
+
 const app = express();
+
 
 app.use(express.json());
 app.use(cors());
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
-});
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', function() {
+})
+.then(() => {
   console.log("Connected to MongoDB database");
+})
+.catch((error) => {
+  console.error("Error connecting to MongoDB:", error);
 });
+
 
 // Define a schema for storing file information
 const fileSchema = new mongoose.Schema({
@@ -27,7 +32,9 @@ const fileSchema = new mongoose.Schema({
   // Add any other relevant fields you need
 });
 
+
 const File = mongoose.model('File', fileSchema);
+
 
 // Multer storage configuration
 const storage = multer.diskStorage({
@@ -39,25 +46,28 @@ const storage = multer.diskStorage({
   }
 });
 
+
 const upload = multer({ storage: storage }).single('file');
+
 
 // Route to handle file upload
 app.post("/uploadFile", (req, res) => {
   upload(req, res, async function (err) {
-    if (err instanceof multer.MulterError) {
-      return res.status(500).json({ error: err.message });
-    } else if (err) {
-      return res.status(500).json({ error: "Failed to upload file." });
-    }
-
-    if (!req.file) {
-      return res.status(400).send('No file was uploaded.');
-    }
-
-    const { filename, path } = req.file;
-
-    // Save file information to the database
     try {
+      if (err instanceof multer.MulterError) {
+        throw new Error(err.message);
+      }
+      if (err) {
+        throw new Error("Failed to upload file.");
+      }
+  
+      if (!req.file) {
+        throw new Error('No file was uploaded.');
+      }
+  
+      const { filename, path } = req.file;
+  
+      // Save file information to the database
       const file = new File({
         filename,
         path
@@ -66,13 +76,12 @@ app.post("/uploadFile", (req, res) => {
       console.log("File uploaded and saved to database:", file);
       res.json({ file });
     } catch (error) {
-      console.error('Error saving file to database:', error);
-      return res.status(500).json({ error: "Failed to save file to database." });
+      console.error('Error handling file upload:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 });
 
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
