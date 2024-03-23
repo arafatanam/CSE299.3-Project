@@ -181,10 +181,24 @@ const storage = multer.diskStorage({
   }
 });
 
+app.post("/trigger-script", async (req, res) => {
+  try {
+    runScript().then(() => {
+      console.log("Script executed successfully via trigger.");
+      res.status(200).json({ message: "Script executed successfully" });
+    }).catch((error) => {
+      console.error("Error executing script via trigger:", error);
+      res.status(500).json({ error: "Failed to execute script" });
+    });
+  } catch (error) {
+    console.error("Error running script:", error);
+    res.status(500).json({ error: "Failed to execute script" });
+  }
+});
+
 
 const upload = multer({ storage: storage }).array('files');
 
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-s
