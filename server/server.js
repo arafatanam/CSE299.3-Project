@@ -17,7 +17,6 @@ const fs = require('fs');
 const pdfparse = require('pdf-parse');
 const mongoose = require("mongoose");
 
-
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -27,7 +26,6 @@ app.use(cors({ origin: "http://localhost:3000", methods: "GET,POST,PUT,DELETE", 
 app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
-
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -36,7 +34,6 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
-
 
 app.post("/getData", async (req, res) => {
   try {
@@ -78,7 +75,6 @@ app.post("/getData", async (req, res) => {
   }
 });
 
-
 async function createForm(questions) {
   const authClient = new googleform.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
@@ -89,8 +85,6 @@ async function createForm(questions) {
   const response = await forms.forms.create({ requestBody: newForm });
   const formId = response.data.formId;
   console.log(response.data);
-
-
 
 
   const requests = questions.map((question, index) => ({
@@ -105,17 +99,14 @@ async function createForm(questions) {
     }
   }));
 
-
   await forms.forms.batchUpdate({
     formId: formId,
     resource: { requests }
   });
 
-
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
-
 
 async function sendEmails(studEmails, formLink) {
   try {
@@ -130,14 +121,12 @@ async function sendEmails(studEmails, formLink) {
       },
     });
 
-
     const mailOptions = {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
       text: `Here is the assessment form link: ${formLink}`,
     };
-
 
     for (const email of studEmails) {
       mailOptions.to = email;
@@ -150,16 +139,9 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
-
-const pdffile = fs.readFileSync('QA.pdf');
-pdfparse(pdffile).then(function (data){
-  console.log(data.text)
-})
-
-
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
-.connect(mongoUrl, {
+  .connect(mongoUrl, {
     useNewUrlParser: true,
   })
   .then(() => {
@@ -167,47 +149,42 @@ mongoose
   })
   .catch((e) => console.log(e));
 
-
-  const multer = require("multer");
-
+const multer = require("multer");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "./files");
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now();
-    cb(null, uniqueSuffix + file.originalname);
+    cb(null, file.originalname);
   },
 });
 
-
-require("./pdfDetails");
-const PdfSchema = mongoose.model("PdfDetails");
+require("./pdfData");
+const PdfSchema = mongoose.model("PdfData");
 const upload = multer({ storage: storage });
 
-
 app.post("/upload-files", upload.single("file"), async (req, res) => {
-  console.log(req.file);
-  const title = req.body.title;
   const fileName = req.file.filename;
+  const pdfFile = fs.readFileSync(`./files/${fileName}`);
+  const data = await pdfparse(pdfFile);
+  const pdfContent = data.text;
   try {
-    await PdfSchema.create({ title: title, pdf: fileName });
-    res.send({ status: "ok" });
+    await PdfSchema.create({pdf: fileName, pdfdata: pdfContent});
+    res.send({ status: "Success" });
   } catch (error) {
-    res.json({ status: error });
+    console.error('Error parsing PDF or saving to database:', error);
+    res.status(500).json({ status: "error", message: "Failed to process PDF file" });
   }
 });
 
-
-app.get("/get-files", async (req, res) => {
-  try {
-    PdfSchema.find({}).then((data) => {
-      res.send({ status: "ok", data: data });
-    });
-  } catch (error) {}
-});
-
+// app.get("/get-files", async (req, res) => {
+//   try {
+//     PdfSchema.find({}).then((data) => {
+//       res.send({ status: "ok", data: data });
+//     });
+//   } catch (error) { }
+// });
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
