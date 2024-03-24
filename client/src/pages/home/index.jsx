@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import styles from "./styles.module.css";
 import axios from "axios";
 
+
 function Home(userDetails) {
     const user = userDetails.user;
     const [studentInfoLink, setStudentInfoLink] = useState("");
     const [assessmentLink, setAssessmentLink] = useState("");
     const [receivedLinks, setReceivedLinks] = useState(null);
-    const [pdfFiles, setPdfFiles] = useState([]);
+    const [file, setFile] = useState("");
+
 
     const handleSubmit = async () => {
         try {
@@ -27,36 +29,26 @@ function Home(userDetails) {
         }
     };
 
-    const handleUpload = async () => {
-        try {
-            if (pdfFiles.length === 0) {
-                alert("Please select PDF files to upload.");
-                return;
-            }
-            const formData = new FormData();
-            pdfFiles.forEach((file) => {
-                formData.append("pdfFiles", file);
-                console.log("Uploading File:", file.name);
-            });
-            const response = await axios.post("http://localhost:8080/uploadFiles", formData);
-            pdfFiles.forEach((file) => {
-                console.log("Uploaded File:", file.name);
-            });
-            setPdfFiles(response.data);
-        } catch (error) {
-            console.error("Error uploading files:", error);
-            alert("An error occurred while uploading files.");
-        }
-    };
 
     const handleLogout = () => {
         window.open(`${process.env.REACT_APP_API_URL}/auth/logout`, "_self");
     };
 
-    const handleFileChange = (e) => {
-        const files = e.target.files;
-        setPdfFiles([...pdfFiles, ...files]);
+
+    const handleUpload = async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append("file",file)
+        console.log(file);
+        const result = await axios.post("http://localhost:8080/upload-files",
+        formData,
+        {
+            headers: { "Content-Type": "multipart/form-data" },
+        }
+        )
+        console.log(result);
     };
+
 
     return (
         <div className={styles.container}>
@@ -81,20 +73,21 @@ function Home(userDetails) {
                             className={styles.input}
                         />
                     </div>
-                    <div className={styles.file_input_container}>
-                        <p className={styles.file_input_label}></p>
-                        <input
-                            type="file"
-                            accept=".pdf"
-                            value={pdfFiles}
-                            onChange={handleFileChange}
-                            className={styles.file_input}
-                            multiple
-                        />
-                        <button className={styles.btn2} onClick={handleUpload}>
-                            Upload
-                        </button>
-                    </div>
+                    <form onSubmit={handleUpload}>
+                        <div className={styles.pdf_input_container}>
+                            <p className={styles.pdf_input_label}></p>
+                            <input
+                                type="file"
+                                accept="application/pdf"
+                                className="form-control"
+                                onChange={(e) => setFile(e.target.files[0])}
+                                required
+                            />
+                            <button className={styles.btn2} onClick={handleSubmit}>
+                                Upload
+                            </button>
+                        </div>
+                    </form>
                     <div>
                         <button className={styles.btn} onClick={handleSubmit}>
                             Submit
@@ -109,4 +102,6 @@ function Home(userDetails) {
     );
 }
 
+
 export default Home;
+
