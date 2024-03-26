@@ -63,8 +63,7 @@ app.post("/getData", async (req, res) => {
       const studEmail = data2.data.values[i][0];
       studEmails.push(studEmail);
     }
-    const deadline = '2024-04-01T10:00:00Z';
-    const formLink = await createForm(questions,deadline);
+    const formLink = await createForm(questions);
     const emailsSent = await sendEmails(studEmails, formLink);
     if (emailsSent) {
       console.log("Emails were sent successfully");
@@ -81,7 +80,7 @@ app.post("/getData", async (req, res) => {
 });
 
 
-async function createForm(questions, deadline) {
+async function createForm(questions) {
   const authClient = new googleform.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
     scopes: 'https://www.googleapis.com/auth/drive',
@@ -91,6 +90,8 @@ async function createForm(questions, deadline) {
   const response = await forms.forms.create({ requestBody: newForm });
   const formId = response.data.formId;
   console.log(response.data);
+
+
 
 
   const requests = questions.map((question, index) => ({
@@ -106,27 +107,15 @@ async function createForm(questions, deadline) {
   }));
 
 
-  // Add deadline
-  const deadlineRequest = {
-    updateForm: {
-      properties: {
-        deadline: deadline
-      }
-    }
-  };
-
-
   await forms.forms.batchUpdate({
     formId: formId,
-    resource: { requests: [...requests, deadlineRequest] }
+    resource: { requests }
   });
 
 
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
-
-
 
 
 async function sendEmails(studEmails, formLink) {
@@ -164,8 +153,6 @@ async function sendEmails(studEmails, formLink) {
 
 
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
-
-
 mongoose
   .connect(mongoUrl, {
     useNewUrlParser: true,
@@ -197,14 +184,22 @@ const upload = multer({ storage: storage });
 app.post("/upload-files", upload.single("file"), async (req, res) => {
   const fileName = req.file.filename;
   const pdfFile = fs.readFileSync(`./files/${fileName}`);
-  const data = await pdfparse(pdfFile);
-  const pdfContent = data.text;
+  let pdfContent = "";
   try {
-    await PdfSchema.create({pdf: fileName, pdfdata: pdfContent});
+    const data = await pdfparse(pdfFile);
+    pdfContent = data.text;
+  } catch (error) {
+    console.error('Error parsing PDF:', error);
+    return res.status(500).json({ status: "error", message: "Failed to parse PDF file" });
+  }
+
+
+  try {
+    await PdfSchema.create({ pdf: fileName, pdfdata: pdfContent });
     res.send({ status: "Success" });
   } catch (error) {
-    console.error('Error parsing PDF or saving to database:', error);
-    res.status(500).json({ status: "error", message: "Failed to process PDF file" });
+    console.error('Error saving to database:', error);
+    res.status(500).json({ status: "error", message: "Failed to save to database" });
   }
 });
 
@@ -220,4 +215,5 @@ app.post("/upload-files", upload.single("file"), async (req, res) => {
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
 
