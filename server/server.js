@@ -18,6 +18,7 @@ const pdfparse = require('pdf-parse');
 const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
+
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -27,6 +28,7 @@ app.use(cors({ origin: "http://localhost:3000", methods: "GET,POST,PUT,DELETE", 
 app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
+
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -35,6 +37,7 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
+
 
 app.post("/getData", async (req, res) => {
   try {
@@ -76,6 +79,7 @@ app.post("/getData", async (req, res) => {
   }
 });
 
+
 async function createForm(questions) {
   const authClient = new googleform.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
@@ -86,6 +90,8 @@ async function createForm(questions) {
   const response = await forms.forms.create({ requestBody: newForm });
   const formId = response.data.formId;
   console.log(response.data);
+
+
 
 
   const requests = questions.map((question, index) => ({
@@ -100,14 +106,17 @@ async function createForm(questions) {
     }
   }));
 
+
   await forms.forms.batchUpdate({
     formId: formId,
     resource: { requests }
   });
 
+
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
+
 
 async function sendEmails(studEmails, formLink) {
   try {
@@ -122,12 +131,14 @@ async function sendEmails(studEmails, formLink) {
       },
     });
 
+
     const mailOptions = {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
       text: `Here is the assessment form link: ${formLink}`,
     };
+
 
     for (const email of studEmails) {
       mailOptions.to = email;
@@ -140,6 +151,7 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
+
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -150,7 +162,9 @@ mongoose
   })
   .catch((e) => console.log(e));
 
+
 const multer = require("multer");
+
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -161,36 +175,51 @@ const storage = multer.diskStorage({
   },
 });
 
+
 require("./pdfData");
 const PdfSchema = mongoose.model("PdfData");
 const upload = multer({ storage: storage });
 
+
 app.post("/upload-files", upload.single("file"), async (req, res) => {
   const fileName = req.file.filename;
   const pdfFile = fs.readFileSync(`./files/${fileName}`);
-  const data = await pdfparse(pdfFile);
-  const pdfContent = data.text;
+  let pdfContent = "";
+  
   try {
-    await PdfSchema.create({pdf: fileName, pdfdata: pdfContent});
+    const data = await pdfparse(pdfFile);
+    pdfContent = data.text;
+  } catch (error) {
+    console.error('Error parsing PDF:', error);
+    return res.status(500).json({ status: "error", message: "Failed to parse PDF file" });
+  }
+
+
+  try {
+    await PdfSchema.create({ pdf: fileName, pdfdata: pdfContent });
     res.send({ status: "Success" });
   } catch (error) {
-    console.error('Error parsing PDF or saving to database:', error);
-    res.status(500).json({ status: "error", message: "Failed to process PDF file" });
+    console.error('Error saving PDF data to database:', error);
+    res.status(500).json({ status: "error", message: "Failed to save PDF data to database" });
   }
 });
+
 
 async function runScript(inputData) {
   return new Promise((resolve, reject) => {
     const python = spawn('python', ['model.py', JSON.stringify(inputData)]);
 
+
     python.stdout.on('data', (data) => {
       console.log(`stdout: ${data}`);
     });
+
 
     python.stderr.on('data', (data) => {
       console.error(`stderr: ${data}`);
       reject(data);
     });
+
 
     python.on('close', (code) => {
       console.log(`child process exited with code ${code}`);
@@ -199,11 +228,13 @@ async function runScript(inputData) {
   });
 }
 
+
 runScript().then(() => {
   console.log("Script executed successfully on backend startup.");
 }).catch((error) => {
   console.error("Error executing script on backend startup:", error);
 });
+
 
 app.post("/trigger-script", async (req, res) => {
   try {
@@ -220,6 +251,7 @@ app.post("/trigger-script", async (req, res) => {
   }
 });
 
+
 app.get("/get-files", async (req, res) => {
   try {
     PdfSchema.find({}).then((data) => {
@@ -227,6 +259,7 @@ app.get("/get-files", async (req, res) => {
     });
   } catch (error) { }
 });
+
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
