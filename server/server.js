@@ -179,13 +179,54 @@ app.post("/upload-files", upload.single("file"), async (req, res) => {
   }
 });
 
-// app.get("/get-files", async (req, res) => {
-//   try {
-//     PdfSchema.find({}).then((data) => {
-//       res.send({ status: "ok", data: data });
-//     });
-//   } catch (error) { }
-// });
+async function runScript(inputData) {
+  return new Promise((resolve, reject) => {
+    const python = spawn('python', ['model.py', JSON.stringify(inputData)]);
+
+    python.stdout.on('data', (data) => {
+      console.log(`stdout: ${data}`);
+    });
+
+    python.stderr.on('data', (data) => {
+      console.error(`stderr: ${data}`);
+      reject(data);
+    });
+
+    python.on('close', (code) => {
+      console.log(`child process exited with code ${code}`);
+      resolve();
+    });
+  });
+}
+
+runScript().then(() => {
+  console.log("Script executed successfully on backend startup.");
+}).catch((error) => {
+  console.error("Error executing script on backend startup:", error);
+});
+
+app.post("/trigger-script", async (req, res) => {
+  try {
+    runScript().then(() => {
+      console.log("Script executed successfully via trigger.");
+      res.status(200).json({ message: "Script executed successfully" });
+    }).catch((error) => {
+      console.error("Error executing script via trigger:", error);
+      res.status(500).json({ error: "Failed to execute script" });
+    });
+  } catch (error) {
+    console.error("Error running script:", error);
+    res.status(500).json({ error: "Failed to execute script" });
+  }
+});
+
+app.get("/get-files", async (req, res) => {
+  try {
+    PdfSchema.find({}).then((data) => {
+      res.send({ status: "ok", data: data });
+    });
+  } catch (error) { }
+});
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
