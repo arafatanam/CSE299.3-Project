@@ -205,6 +205,24 @@ app.post("/upload-files", upload.single("file"), async (req, res) => {
 });
 
 
+const pdfParseMiddleware = async (req, res, next) => {
+  if (!req.file || !req.file.path) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+
+  const pdfPath = req.file.path;
+  try {
+    const data = await pdfparse(pdfPath);
+    req.pdfContent = data.text;
+    next();
+  } catch (error) {
+    console.error('Error parsing PDF:', error);
+    return res.status(500).json({ error: 'Failed to parse PDF file' });
+  }
+};
+
+
 async function runScript(inputData) {
   return new Promise((resolve, reject) => {
     const command = `python model.py '${JSON.stringify(inputData)}'`;
@@ -230,4 +248,3 @@ runScript().then(() => {
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
