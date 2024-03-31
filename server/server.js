@@ -81,36 +81,25 @@ app.post("/getData", async (req, res) => {
 
 
 async function createForm(questions) {
-  const authClient = new googleform.auth.GoogleAuth({
+  const authClient = new google.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
     scopes: 'https://www.googleapis.com/auth/drive',
   });
   const forms = googleform.forms({ version: 'v1', auth: authClient });
-  const newForm = { info: { title: 'Assessment' } };
+  const newForm = {
+    info: {
+      title: 'Assessment',
+      deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), 
+    },
+    items: questions.map(question => ({
+      title: question,
+      textItem: {},
+      type: 'TEXT' // Set the type of item to text
+    })),
+  };
   const response = await forms.forms.create({ requestBody: newForm });
   const formId = response.data.formId;
   console.log(response.data);
-
-
-
-
-  const requests = questions.map((question, index) => ({
-    createItem: {
-      item: {
-        title: question,
-        textItem: {}
-      },
-      location: {
-        index: index
-      }
-    }
-  }));
-
-
-  await forms.forms.batchUpdate({
-    formId: formId,
-    resource: { requests }
-  });
 
 
   const formLink = `https://docs.google.com/forms/d/${formId}`;
@@ -202,4 +191,3 @@ app.post("/upload-files", upload.array("files", 5), async (req, res) => {
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
