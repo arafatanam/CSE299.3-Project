@@ -181,70 +181,25 @@ const PdfSchema = mongoose.model("PdfData");
 const upload = multer({ storage: storage });
 
 
-app.post("/upload-files", upload.single("file"), async (req, res) => {
-  const fileName = req.file.filename;
-  const pdfFile = fs.readFileSync(`./files/${fileName}`);
-  let pdfContent = "";
-  
+app.post("/upload-files", upload.array("files", 5), async (req, res) => {
   try {
-    const data = await pdfparse(pdfFile);
-    pdfContent = data.text;
-  } catch (error) {
-    console.error('Error parsing PDF:', error);
-    return res.status(500).json({ status: "error", message: "Failed to parse PDF file" });
-  }
-
-
-  try {
-    await PdfSchema.create({ pdf: fileName, pdfdata: pdfContent });
+    const files = req.files;
+    const promises = files.map(async (file) => {
+      const fileName = file.filename;
+      const pdfFile = fs.readFileSync(`./files/${fileName}`);
+      const data = await pdfparse(pdfFile);
+      const pdfContent = data.text;
+      await PdfSchema.create({ pdf: fileName, pdfdata: pdfContent });
+    });
+    await Promise.all(promises);
     res.send({ status: "Success" });
   } catch (error) {
-    console.error('Error saving PDF data to database:', error);
-    res.status(500).json({ status: "error", message: "Failed to save PDF data to database" });
+    console.error('Error parsing PDF or saving to database:', error);
+    res.status(500).json({ status: "error", message: "Failed to process PDF files" });
   }
-});
-
-
-const pdfParseMiddleware = async (req, res, next) => {
-  if (!req.file || !req.file.path) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-
-
-  const pdfPath = req.file.path;
-  try {
-    const data = await pdfparse(pdfPath);
-    req.pdfContent = data.text;
-    next();
-  } catch (error) {
-    console.error('Error parsing PDF:', error);
-    return res.status(500).json({ error: 'Failed to parse PDF file' });
-  }
-};
-
-
-async function runScript(inputData) {
-  return new Promise((resolve, reject) => {
-    const command = `python model.py '${JSON.stringify(inputData)}'`;
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error('Error executing script:', error);
-        reject(error);
-      }
-      console.log(stdout);
-      console.error(stderr);
-      resolve();
-    });
-  });
-}
-
-
-runScript().then(() => {
-  console.log("Script executed successfully on backend startup.");
-}).catch((error) => {
-  console.error("Error executing script on backend startup:", error);
 });
 
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
