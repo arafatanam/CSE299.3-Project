@@ -254,5 +254,19 @@ app.post("/upload-files", async (req, res) => {
 });
 
 
+exec(`python ${pythonScriptPath}`, (error, stdout, stderr) => {
+  if (error) {
+    console.error('Error executing Python script:', error);
+    return;
+  }
+  console.log('Python script output:', stdout);
+});
+
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
+
+
+
+
