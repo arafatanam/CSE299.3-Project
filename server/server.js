@@ -170,21 +170,35 @@ const PdfSchema = mongoose.model("PdfData");
 const upload = multer({ storage: storage });
 
 
-app.post("/upload-files", upload.array("files", 5), async (req, res) => {
+const upload = multer({ storage: storage }).array("files", 10);
+
+app.post("/upload-files", async (req, res) => {
   try {
-    const files = req.files;
-    const promises = files.map(async (file) => {
-      const fileName = file.filename;
-      const pdfFile = fs.readFileSync(`./files/${fileName}`);
-      const data = await pdfparse(pdfFile);
-      const pdfContent = data.text;
-      await PdfSchema.create({ pdf: fileName, pdfdata: pdfContent });
+    upload(req, res, async function (err) {
+      if (err instanceof multer.MulterError) {
+        // Multer error handling
+        console.error('Multer error:', err);
+        return res.status(500).json({ status: "error", message: "Failed to process PDF files" });
+      } else if (err) {
+        // Other errors
+        console.error('Error uploading files:', err);
+        return res.status(500).json({ status: "error", message: "Failed to upload files" });
+      }
+
+      // Processing each uploaded file
+      const files = req.files;
+      for (const file of files) {
+        const pdfFile = fs.readFileSync(file.path);
+        const data = await pdfparse(pdfFile);
+        const pdfContent = data.text;
+        await PdfSchema.create({ pdf: file.filename, pdfdata: pdfContent });
+      }
+
+      return res.send({ status: "Success" });
     });
-    await Promise.all(promises);
-    res.send({ status: "Success" });
   } catch (error) {
-    console.error('Error parsing PDF or saving to database:', error);
-    res.status(500).json({ status: "error", message: "Failed to process PDF files" });
+    console.error('Error processing uploaded files:', error);
+    return res.status(500).json({ status: "error", message: "Failed to process uploaded files" });
   }
 });
 
