@@ -86,31 +86,33 @@ async function createForm(questions) {
     scopes: 'https://www.googleapis.com/auth/drive',
   });
   const forms = googleform.forms({ version: 'v1', auth: authClient });
+  
+  // Set the deadline 7 days from now
+  const deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+
   const newForm = {
     info: {
       title: 'Assessment',
-      deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      deadline: deadline,
     },
     items: questions.map(question => ({
       title: question,
       textItem: {},
-      type: 'TEXT' // Set the type of item to text
-    })),
+      type: 'TEXT'    })),
   };
   const response = await forms.forms.create({ requestBody: newForm });
   const formId = response.data.formId;
   console.log(response.data);
 
 
-
-
-
-
-
-
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
+
+
+
+
 
 
 async function sendEmails(studEmails, formLink) {
@@ -233,3 +235,5 @@ exec(`python ${pythonScriptPath}`, (error, stdout, stderr) => {
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
+
