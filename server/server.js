@@ -18,9 +18,6 @@ const pdfparse = require('pdf-parse');
 const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
-
-
-
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -30,9 +27,6 @@ app.use(cors({ origin: "http://localhost:3000", methods: "GET,POST,PUT,DELETE", 
 app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
-
-
-
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -41,9 +35,6 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
-
-
-
 
 app.post("/getData", async (req, res) => {
   try {
@@ -85,9 +76,6 @@ app.post("/getData", async (req, res) => {
   }
 });
 
-
-
-
 async function createForm(questions) {
   const authClient = new google.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
@@ -115,9 +103,6 @@ async function createForm(questions) {
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
-
-
-
 
 async function sendEmails(studEmails, formLink) {
   try {
@@ -156,9 +141,6 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
-
-
-
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -169,13 +151,7 @@ mongoose
   })
   .catch((e) => console.log(e));
 
-
-
-
 const multer = require("multer");
-
-
-
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -186,65 +162,33 @@ const storage = multer.diskStorage({
   },
 });
 
-
-
-
 require("./pdfData");
 const PdfSchema = mongoose.model("PdfData");
-const upload = multer({ storage: storage });
-
-
-
-
 const upload = multer({ storage: storage }).array("files", 10);
-
-
-const PdfTableExtractor = require("pdf-table-extractor");
-
+const pdfparse = require('pdf-parse');
 
 app.post("/upload-files", async (req, res) => {
   try {
     upload(req, res, async function (err) {
       if (err instanceof multer.MulterError) {
-        // Multer error handling
         console.error('Multer error:', err);
         return res.status(500).json({ status: "error", message: "Failed to process PDF files" });
       } else if (err) {
-        // Other errors
         console.error('Error uploading files:', err);
         return res.status(500).json({ status: "error", message: "Failed to upload files" });
       }
-
-
-      // Processing each uploaded file
       const files = req.files;
       for (const file of files) {
-        const pdfFile = fs.readFileSync(file.path);
-        const data = await pdfparse(pdfFile);
-        let pdfContent = data.text;
-
-
-        // Extract tables from PDF if any
-        const tableExtractor = new PdfTableExtractor();
-        const tableData = await tableExtractor.extractData(file.path);
-        if (tableData && tableData.length > 0) {
-          // Handle table data
-          pdfContent += "\n\nTables:\n";
-          tableData.forEach((table, index) => {
-            pdfContent += `Table ${index + 1}:\n`;
-            table.forEach(row => {
-              pdfContent += row.join("\t") + "\n";
-            });
-            pdfContent += "\n";
-          });
+        let pdfContent = "";
+        if (file.mimetype === 'application/pdf') {
+          const pdfFile = fs.readFileSync(file.path);
+          const data = await pdfparse(pdfFile);
+          pdfContent = data.text;
+        } else {
+          console.log(`Unsupported file type: ${file.mimetype}`);
         }
-
-
-        // Save processed content to the database
         await PdfSchema.create({ pdf: file.filename, pdfdata: pdfContent });
       }
-
-
       return res.send({ status: "Success" });
     });
   } catch (error) {
@@ -252,7 +196,6 @@ app.post("/upload-files", async (req, res) => {
     return res.status(500).json({ status: "error", message: "Failed to process uploaded files" });
   }
 });
-
 
 exec(`python ${pythonScriptPath}`, (error, stdout, stderr) => {
   if (error) {
@@ -262,11 +205,5 @@ exec(`python ${pythonScriptPath}`, (error, stdout, stderr) => {
   console.log('Python script output:', stdout);
 });
 
-
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
-
-
-
