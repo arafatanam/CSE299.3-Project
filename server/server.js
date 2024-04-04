@@ -18,6 +18,7 @@ const pdfparse = require('pdf-parse');
 const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
+
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -27,6 +28,7 @@ app.use(cors({ origin: "http://localhost:3000", methods: "GET,POST,PUT,DELETE", 
 app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
+
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -35,6 +37,7 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
+
 
 app.post("/getData", async (req, res) => {
   try {
@@ -76,6 +79,7 @@ app.post("/getData", async (req, res) => {
   }
 });
 
+
 async function createForm(questions) {
   const authClient = new google.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
@@ -100,9 +104,14 @@ async function createForm(questions) {
 
 
 
+
+
+
+
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
+
 
 async function sendEmails(studEmails, formLink) {
   try {
@@ -120,12 +129,20 @@ async function sendEmails(studEmails, formLink) {
 
 
 
+
+
+
+
     const mailOptions = {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
       text: `Here is the assessment form link: ${formLink}`,
     };
+
+
+
+
 
 
 
@@ -141,6 +158,7 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
+
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -151,7 +169,9 @@ mongoose
   })
   .catch((e) => console.log(e));
 
+
 const multer = require("multer");
+
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -162,10 +182,12 @@ const storage = multer.diskStorage({
   },
 });
 
+
 require("./pdfData");
 const PdfSchema = mongoose.model("PdfData");
 const upload = multer({ storage: storage }).array("files", 10);
 const pdfparse = require('pdf-parse');
+
 
 app.post("/upload-files", async (req, res) => {
   try {
@@ -197,6 +219,9 @@ app.post("/upload-files", async (req, res) => {
   }
 });
 
+
+const { exec } = require('child_process');
+const pythonScriptPath = 'model.py'; // Path to your Python script
 exec(`python ${pythonScriptPath}`, (error, stdout, stderr) => {
   if (error) {
     console.error('Error executing Python script:', error);
@@ -204,6 +229,7 @@ exec(`python ${pythonScriptPath}`, (error, stdout, stderr) => {
   }
   console.log('Python script output:', stdout);
 });
+
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
