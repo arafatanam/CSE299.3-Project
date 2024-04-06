@@ -203,15 +203,17 @@ app.post("/upload-files", async (req, res) => {
       }
       const files = req.files;
       for (const file of files) {
-        let pdfContent = "";
+        let pdfData = "";
         if (file.mimetype === 'application/pdf') {
           const pdfFile = fs.readFileSync(file.path);
-          const data = await pdfparse(pdfFile);
-          pdfContent = data.text;
+          const pdfTableExtractor = new PdfTableExtractor();
+          const tableData = await pdfTableExtractor.extractTables(pdfFile);
+          const extractedTable = tableData[0];
+          pdfData = JSON.stringify(extractedTable);
         } else {
           console.log(`Unsupported file type: ${file.mimetype}`);
         }
-        await PdfSchema.create({ pdf: file.filename, pdfdata: pdfContent });
+        await PdfSchema.create({ pdf: file.filename, pdfdata: pdfData });
       }
       return res.send({ status: "Success" });
     });
@@ -220,6 +222,7 @@ app.post("/upload-files", async (req, res) => {
     return res.status(500).json({ status: "error", message: "Failed to process uploaded files" });
   }
 });
+
 
 
 const { exec } = require('child_process');
