@@ -99,8 +99,6 @@ async function createForm(questions) {
   const deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
 
-
-
   const newForm = {
     info: {
       title: 'Assessment',
@@ -108,19 +106,34 @@ async function createForm(questions) {
     },
     items: questions.map(question => ({
       title: question,
-      textItem: {},
-      type: 'TEXT'    })),
+      paragraphItem: {},
+      type: 'PARAGRAPH_TEXT'
+    })),
   };
+
+
   const response = await forms.forms.create({ requestBody: newForm });
   const formId = response.data.formId;
   console.log(response.data);
 
 
-
-
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 async function sendEmails(studEmails, formLink) {
@@ -258,10 +271,3 @@ app.post("/upload-files", async (req, res) => {
 });
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
-
-
-
-
-
