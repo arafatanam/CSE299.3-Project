@@ -19,6 +19,8 @@ const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
 
+
+
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -29,6 +31,8 @@ app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
 
+
+
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -37,6 +41,8 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
+
+
 
 
 app.post("/getData", async (req, res) => {
@@ -80,15 +86,19 @@ app.post("/getData", async (req, res) => {
 });
 
 
+
+
 async function createForm(questions) {
   const authClient = new google.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
     scopes: 'https://www.googleapis.com/auth/drive',
   });
   const forms = googleform.forms({ version: 'v1', auth: authClient });
-  
+ 
   // Set the deadline 7 days from now
   const deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+
 
 
   const newForm = {
@@ -106,13 +116,11 @@ async function createForm(questions) {
   console.log(response.data);
 
 
+
+
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
-
-
-
-
 
 
 async function sendEmails(studEmails, formLink) {
@@ -135,12 +143,28 @@ async function sendEmails(studEmails, formLink) {
 
 
 
+
+
+
+
+
+
+
+
     const mailOptions = {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
       text: `Here is the assessment form link: ${formLink}`,
     };
+
+
+
+
+
+
+
+
 
 
 
@@ -161,6 +185,8 @@ async function sendEmails(studEmails, formLink) {
 }
 
 
+
+
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -172,7 +198,11 @@ mongoose
   .catch((e) => console.log(e));
 
 
+
+
 const multer = require("multer");
+
+
 
 
 const storage = multer.diskStorage({
@@ -185,10 +215,14 @@ const storage = multer.diskStorage({
 });
 
 
+
+
 require("./pdfData");
 const PdfSchema = mongoose.model("PdfData");
 const upload = multer({ storage: storage }).array("files", 10);
 const pdfparse = require('pdf-parse');
+
+
 
 
 app.post("/upload-files", async (req, res) => {
@@ -222,21 +256,12 @@ app.post("/upload-files", async (req, res) => {
     return res.status(500).json({ status: "error", message: "Failed to process uploaded files" });
   }
 });
-
-
-
-const { exec } = require('child_process');
-const pythonScriptPath = 'model.py'; // Path to your Python script
-exec(`python ${pythonScriptPath}`, (error, stdout, stderr) => {
-  if (error) {
-    console.error('Error executing Python script:', error);
-    return;
-  }
-  console.log('Python script output:', stdout);
-});
-
-
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
+
+
+
+
 
 
