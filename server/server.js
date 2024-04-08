@@ -228,10 +228,39 @@ app.post("/upload-files", async (req, res) => {
 });
 
 
+const { spawn } = require('child_process');
+
+
+function callPythonScript(question, context) {
+    return new Promise((resolve, reject) => {
+        const pythonProcess = spawn('python', ['model.py', question, context]);
+
+
+        let result = '';
+
+
+        pythonProcess.stdout.on('data', (data) => {
+            result += data.toString();
+        });
+
+
+        pythonProcess.stderr.on('data', (data) => {
+            console.error(`Error from Python script: ${data}`);
+            reject(data);
+        });
+
+
+        pythonProcess.on('close', (code) => {
+            if (code === 0) {
+                resolve(result.trim());
+            } else {
+                console.error(`Python script exited with code ${code}`);
+                reject(`Python script exited with code ${code}`);
+            }
+        });
+    });
+}
+
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
-
-
-
