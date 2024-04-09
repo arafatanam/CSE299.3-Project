@@ -87,7 +87,6 @@ async function createForm(questions) {
   });
   const forms = googleform.forms({ version: 'v1', auth: authClient });
  
-  // Set the deadline 7 days from now
   const deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   const newForm = {
     info: {
@@ -107,7 +106,6 @@ async function createForm(questions) {
   return formLink;
 }
 
-
 async function sendEmails(studEmails, formLink) {
   try {
     const transporter = nodemailer.createTransport({
@@ -121,14 +119,12 @@ async function sendEmails(studEmails, formLink) {
       },
     });
 
-
     const mailOptions = {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
       text: `Here is the assessment form link: ${formLink}`,
     };
-
 
     for (const email of studEmails) {
       mailOptions.to = email;
@@ -141,7 +137,6 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
-
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -151,7 +146,6 @@ mongoose
     console.log("Connected to database");
   })
   .catch((e) => console.log(e));
-
 
 const multer = require("multer");
 const storage = multer.diskStorage({
@@ -163,38 +157,27 @@ const storage = multer.diskStorage({
   },
 });
 
-
 async function updateFormDeadline(formId, newDeadline) {
   const authClient = new google.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
     scopes: 'https://www.googleapis.com/auth/forms',
   });
   const forms = googleform.forms({ version: 'v1', auth: authClient });
-
-
   const requestBody = {
-    deadline: newDeadline.toISOString(), // Convert the deadline to ISO string format
+    deadline: newDeadline.toISOString(),
   };
-
-
   const response = await forms.forms.patch({
     formId: formId,
     requestBody: requestBody
   });
-
-
   console.log('Form deadline updated:', response.data);
-
-
   return response.data;
 }
-
 
 require("./pdfData");
 const PdfSchema = mongoose.model("PdfData");
 const upload = multer({ storage: storage }).array("files", 10);
 const pdfparse = require('pdf-parse');
-
 
 app.post("/upload-files", async (req, res) => {
   try {
@@ -211,7 +194,6 @@ app.post("/upload-files", async (req, res) => {
         let pdfData = "";
         if (file.mimetype === 'application/pdf') {
           const pdfFile = fs.readFileSync(file.path);
-          // Use pdf-parse to extract text content from the PDF file
           const data = await pdfparse(pdfFile);
           pdfData = data.text;
         } else {
@@ -229,27 +211,17 @@ app.post("/upload-files", async (req, res) => {
 
 
 const { spawn } = require('child_process');
-
-
 function callPythonScript(question, context) {
     return new Promise((resolve, reject) => {
         const pythonProcess = spawn('python', ['model.py', question, context]);
-
-
         let result = '';
-
-
         pythonProcess.stdout.on('data', (data) => {
             result += data.toString();
         });
-
-
         pythonProcess.stderr.on('data', (data) => {
             console.error(`Error from Python script: ${data}`);
             reject(data);
         });
-
-
         pythonProcess.on('close', (code) => {
             if (code === 0) {
                 resolve(result.trim());
@@ -260,7 +232,5 @@ function callPythonScript(question, context) {
         });
     });
 }
-
-
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
