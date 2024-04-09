@@ -19,6 +19,8 @@ const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
 
+
+
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -29,6 +31,8 @@ app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
 
+
+
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -37,6 +41,8 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
+
+
 
 
 app.post("/getData", async (req, res) => {
@@ -95,7 +101,7 @@ async function createForm(questions) {
     },
     items: questions.map(question => ({
       title: question,
-      paragraphItem: {},
+      paragraphItem: {}, // You can remove this if you don't want additional settings for the paragraph item
       type: 'PARAGRAPH_TEXT'
     })),
   };
@@ -105,6 +111,7 @@ async function createForm(questions) {
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
+
 
 async function sendEmails(studEmails, formLink) {
   try {
@@ -119,12 +126,14 @@ async function sendEmails(studEmails, formLink) {
       },
     });
 
+
     const mailOptions = {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
       text: `Here is the assessment form link: ${formLink}`,
     };
+
 
     for (const email of studEmails) {
       mailOptions.to = email;
@@ -137,6 +146,7 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
+
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -147,6 +157,7 @@ mongoose
   })
   .catch((e) => console.log(e));
 
+
 const multer = require("multer");
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -156,6 +167,7 @@ const storage = multer.diskStorage({
     cb(null, file.originalname);
   },
 });
+
 
 async function updateFormDeadline(formId, newDeadline) {
   const authClient = new google.auth.GoogleAuth({
@@ -174,10 +186,12 @@ async function updateFormDeadline(formId, newDeadline) {
   return response.data;
 }
 
+
 require("./pdfData");
 const PdfSchema = mongoose.model("PdfData");
 const upload = multer({ storage: storage }).array("files", 10);
 const pdfparse = require('pdf-parse');
+
 
 app.post("/upload-files", async (req, res) => {
   try {
@@ -210,6 +224,8 @@ app.post("/upload-files", async (req, res) => {
 });
 
 
+
+
 const { spawn } = require('child_process');
 function callPythonScript(question, context) {
     return new Promise((resolve, reject) => {
@@ -234,3 +250,6 @@ function callPythonScript(question, context) {
 }
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
+
+
