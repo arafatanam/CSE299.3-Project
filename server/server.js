@@ -18,9 +18,6 @@ const pdfparse = require('pdf-parse');
 const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
-
-
-
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -30,9 +27,6 @@ app.use(cors({ origin: "http://localhost:3000", methods: "GET,POST,PUT,DELETE", 
 app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
-
-
-
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -41,9 +35,6 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
-
-
-
 
 app.post("/getData", async (req, res) => {
   try {
@@ -85,7 +76,6 @@ app.post("/getData", async (req, res) => {
   }
 });
 
-
 async function createForm(questions) {
   const authClient = new google.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
@@ -112,7 +102,6 @@ async function createForm(questions) {
   return formLink;
 }
 
-
 async function sendEmails(studEmails, formLink) {
   try {
     const transporter = nodemailer.createTransport({
@@ -126,14 +115,12 @@ async function sendEmails(studEmails, formLink) {
       },
     });
 
-
     const mailOptions = {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
       text: `Here is the assessment form link: ${formLink}`,
     };
-
 
     for (const email of studEmails) {
       mailOptions.to = email;
@@ -146,7 +133,6 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
-
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -157,7 +143,6 @@ mongoose
   })
   .catch((e) => console.log(e));
 
-
 const multer = require("multer");
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -167,7 +152,6 @@ const storage = multer.diskStorage({
     cb(null, file.originalname);
   },
 });
-
 
 async function updateFormDeadline(formId, newDeadline) {
   const authClient = new google.auth.GoogleAuth({
@@ -186,12 +170,10 @@ async function updateFormDeadline(formId, newDeadline) {
   return response.data;
 }
 
-
 require("./pdfData");
+const PdfTableExtractor = require("pdf-table-extractor");
 const PdfSchema = mongoose.model("PdfData");
 const upload = multer({ storage: storage }).array("files", 10);
-const pdfparse = require('pdf-parse');
-
 
 app.post("/upload-files", async (req, res) => {
   try {
@@ -208,11 +190,26 @@ app.post("/upload-files", async (req, res) => {
         let pdfData = "";
         if (file.mimetype === 'application/pdf') {
           const pdfFile = fs.readFileSync(file.path);
-          const data = await pdfparse(pdfFile);
-          pdfData = data.text;
+          try {
+            const pdfTables = await PdfTableExtractor.process(pdfFile);
+            // Extract text from each page's tables
+            pdfTables.forEach(pageTables => {
+              pageTables.forEach(table => {
+                table.forEach(row => {
+                  row.forEach(cell => {
+                    pdfData += cell.text + " ";
+                  });
+                });
+              });
+            });
+          } catch (error) {
+            console.error('Error extracting tables from PDF:', error);
+            pdfData = ""; // Reset pdfData
+          }
         } else {
           console.log(`Unsupported file type: ${file.mimetype}`);
         }
+        // Save PDF data to database
         await PdfSchema.create({ pdf: file.filename, pdfdata: pdfData });
       }
       return res.send({ status: "Success" });
@@ -222,9 +219,6 @@ app.post("/upload-files", async (req, res) => {
     return res.status(500).json({ status: "error", message: "Failed to process uploaded files" });
   }
 });
-
-
-
 
 const { spawn } = require('child_process');
 function callPythonScript(question, context) {
