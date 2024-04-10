@@ -208,6 +208,7 @@ app.post("/upload-files", async (req, res) => {
       const files = req.files;
       for (const file of files) {
         let pdfData = "";
+        let tableData = []; // Array to store extracted table data
         if (file.mimetype === 'application/pdf') {
           const pdfFile = fs.readFileSync(file.path);
           try {
@@ -215,13 +216,10 @@ app.post("/upload-files", async (req, res) => {
             // Extract text from each page's tables
             pdfTables.forEach(pageTables => {
               pageTables.forEach(table => {
-                table.forEach(row => {
-                  row.forEach(cell => {
-                    pdfData += cell.text + " ";
-                  });
-                });
+                tableData.push(table.map(row => row.join(' ')).join('\n'));
               });
             });
+            pdfData = tableData.join('\n\n'); // Concatenate table data with double line breaks
           } catch (error) {
             console.error('Error extracting tables from PDF:', error);
             pdfData = ""; // Reset pdfData
@@ -265,4 +263,3 @@ function callPythonScript(question, context) {
 }
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
