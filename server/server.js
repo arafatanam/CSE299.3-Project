@@ -18,6 +18,7 @@ const pdfparse = require('pdf-parse');
 const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
+
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -27,6 +28,7 @@ app.use(cors({ origin: "http://localhost:3000", methods: "GET,POST,PUT,DELETE", 
 app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
+
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -35,6 +37,7 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
+
 
 app.post("/getData", async (req, res) => {
   try {
@@ -76,6 +79,7 @@ app.post("/getData", async (req, res) => {
   }
 });
 
+
 async function createForm(questions) {
   const authClient = new google.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
@@ -102,6 +106,7 @@ async function createForm(questions) {
   return formLink;
 }
 
+
 async function sendEmails(studEmails, formLink) {
   try {
     const transporter = nodemailer.createTransport({
@@ -115,12 +120,14 @@ async function sendEmails(studEmails, formLink) {
       },
     });
 
+
     const mailOptions = {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
       text: `Here is the assessment form link: ${formLink}`,
     };
+
 
     for (const email of studEmails) {
       mailOptions.to = email;
@@ -133,6 +140,7 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
+
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -142,6 +150,7 @@ mongoose
     console.log("Connected to database");
   })
   .catch((e) => console.log(e));
+
 
 const multer = require("multer");
 const storage = multer.diskStorage({
@@ -153,27 +162,38 @@ const storage = multer.diskStorage({
   },
 });
 
+
 async function updateFormDeadline(formId, newDeadline) {
-  const authClient = new google.auth.GoogleAuth({
-    credentials: require('./routes/keys.json'),
-    scopes: 'https://www.googleapis.com/auth/forms',
-  });
-  const forms = googleform.forms({ version: 'v1', auth: authClient });
-  const requestBody = {
-    deadline: newDeadline.toISOString(),
-  };
-  const response = await forms.forms.patch({
-    formId: formId,
-    requestBody: requestBody
-  });
-  console.log('Form deadline updated:', response.data);
-  return response.data;
+  try {
+    const authClient = new google.auth.GoogleAuth({
+      credentials: require('./routes/keys.json'),
+      scopes: 'https://www.googleapis.com/auth/forms',
+    });
+    const forms = googleform.forms({ version: 'v1', auth: authClient });
+    
+    const requestBody = {
+      deadline: newDeadline.toISOString(),
+    };
+    
+    const response = await forms.forms.update({
+      formId: formId,
+      requestBody: requestBody
+    });
+    
+    console.log('Form deadline updated:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating form deadline:', error);
+    throw error;
+  }
 }
+
 
 require("./pdfData");
 const PdfTableExtractor = require("pdf-table-extractor");
 const PdfSchema = mongoose.model("PdfData");
 const upload = multer({ storage: storage }).array("files", 10);
+
 
 app.post("/upload-files", async (req, res) => {
   try {
@@ -220,6 +240,7 @@ app.post("/upload-files", async (req, res) => {
   }
 });
 
+
 const { spawn } = require('child_process');
 function callPythonScript(question, context) {
     return new Promise((resolve, reject) => {
@@ -244,6 +265,4 @@ function callPythonScript(question, context) {
 }
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
 
