@@ -18,7 +18,6 @@ const pdfparse = require('pdf-parse');
 const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
-
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -37,7 +36,6 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
-
 
 app.post("/getData", async (req, res) => {
   try {
@@ -79,7 +77,6 @@ app.post("/getData", async (req, res) => {
   }
 });
 
-
 async function createForm(questions) {
   const authClient = new google.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
@@ -106,7 +103,6 @@ async function createForm(questions) {
   return formLink;
 }
 
-
 async function sendEmails(studEmails, formLink) {
   try {
     const transporter = nodemailer.createTransport({
@@ -127,7 +123,6 @@ async function sendEmails(studEmails, formLink) {
       subject: "Assessment Google Form",
       text: `Here is the assessment form link: ${formLink}`,
     };
-
 
     for (const email of studEmails) {
       mailOptions.to = email;
@@ -151,7 +146,6 @@ mongoose
   })
   .catch((e) => console.log(e));
 
-
 const multer = require("multer");
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -161,7 +155,6 @@ const storage = multer.diskStorage({
     cb(null, file.originalname);
   },
 });
-
 
 async function updateFormDeadline(formId, newDeadline) {
   try {
@@ -188,12 +181,9 @@ async function updateFormDeadline(formId, newDeadline) {
   }
 }
 
-
 require("./pdfData");
+const pdfparse = require('pdf-parse');
 const PdfTableExtractor = require("pdf-table-extractor");
-const PdfSchema = mongoose.model("PdfData");
-const upload = multer({ storage: storage }).array("files", 10);
-
 
 app.post("/upload-files", async (req, res) => {
   try {
@@ -208,27 +198,25 @@ app.post("/upload-files", async (req, res) => {
       const files = req.files;
       for (const file of files) {
         let pdfData = "";
-        let tableData = []; // Array to store extracted table data
+        let tableData = [];
         if (file.mimetype === 'application/pdf') {
           const pdfFile = fs.readFileSync(file.path);
           try {
+            const pdfText = await pdfparse(pdfFile);
+            pdfData = pdfText.text;
             const pdfTables = await PdfTableExtractor.process(pdfFile);
-            // Extract text from each page's tables
             pdfTables.forEach(pageTables => {
               pageTables.forEach(table => {
-                tableData.push(table.map(row => row.join(' ')).join('\n'));
+                tableData.push(table);
               });
             });
-            pdfData = tableData.join('\n\n'); // Concatenate table data with double line breaks
           } catch (error) {
             console.error('Error extracting tables from PDF:', error);
-            pdfData = ""; // Reset pdfData
           }
         } else {
           console.log(`Unsupported file type: ${file.mimetype}`);
         }
-        // Save PDF data to database
-        await PdfSchema.create({ pdf: file.filename, pdfdata: pdfData });
+        await PdfSchema.create({ pdf: file.filename, pdfdata: pdfData, tables: tableData });
       }
       return res.send({ status: "Success" });
     });
@@ -237,7 +225,6 @@ app.post("/upload-files", async (req, res) => {
     return res.status(500).json({ status: "error", message: "Failed to process uploaded files" });
   }
 });
-
 
 const { spawn } = require('child_process');
 function callPythonScript(question, context) {
