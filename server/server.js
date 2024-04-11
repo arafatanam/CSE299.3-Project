@@ -169,13 +169,26 @@ const storage = multer.diskStorage({
 });
 
 
+app.post("/update-form-deadline", async (req, res) => {
+  try {
+    const { formId, newDeadline } = req.body;
+    const response = await updateFormDeadline(formId, newDeadline);  
+    res.json(response);
+  } catch (error) {
+    console.error('Error updating form deadline:', error);
+    res.status(500).json({ error: "Failed to update form deadline" });
+  }
+});
+
+
 async function updateFormDeadline(formId, newDeadline) {
   try {
-    const authClient = new google.auth.GoogleAuth({
-      credentials: require('./routes/keys.json'),
+    const authClient = await auth.getClient({
+      keyFile: './routes/keys.json',
       scopes: 'https://www.googleapis.com/auth/forms',
     });
-    const forms = googleform.forms({ version: 'v1', auth: authClient });
+   
+    const forms = google.forms({ version: 'v1', auth: authClient });
    
     const requestBody = {
       deadline: newDeadline.toISOString(),
@@ -278,6 +291,3 @@ function callPythonScript(question, context) {
 }
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
-
