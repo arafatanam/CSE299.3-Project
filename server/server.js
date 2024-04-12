@@ -120,16 +120,19 @@ async function sendEmails(studEmails, formLink) {
         pass: process.env.PASS,
       },
     });
-    const mailOptions = {
-      from: process.env.EMAIL,
-      to: studEmails,
-      subject: "Assessment Google Form",
-      text: `Here is the assessment form link: ${formLink}`,
-    };
+    const mailsData = [];
     for (const email of studEmails) {
-      mailOptions.to = email;
+      const mark = Math.floor(Math.random() * 100) + 1;
+      const mailOptions = {
+        from: process.env.EMAIL,
+        to: email,
+        subject: "Assessment Google Form",
+        text: `Here is the assessment form link: ${formLink}. Your random mark is: ${mark}`, 
+      };
       await transporter.sendMail(mailOptions);
+      mailsData.push({ email, mark }); 
     }
+    console.log("Emails were sent successfully with marks:", mailsData);
     return true;
   } catch (error) {
     console.error('Error sending emails:', error);
@@ -292,6 +295,3 @@ function callPythonScript(question, context) {
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
-
