@@ -18,7 +18,6 @@ const pdfparse = require('pdf-parse');
 const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
-
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -29,8 +28,6 @@ app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
 
-
-
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -39,7 +36,6 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
-
 
 app.post("/getData", async (req, res) => {
   try {
@@ -81,14 +77,12 @@ app.post("/getData", async (req, res) => {
   }
 });
 
-
 async function createForm(questions) {
   const authClient = new google.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
     scopes: 'https://www.googleapis.com/auth/drive',
   });
   const forms = googleform.forms({ version: 'v1', auth: authClient });
- 
   const deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   const newForm = {
     info: {
@@ -108,7 +102,6 @@ async function createForm(questions) {
   return formLink;
 }
 
-
 async function sendEmails(studEmails, formLink) {
   try {
     const transporter = nodemailer.createTransport({
@@ -121,18 +114,12 @@ async function sendEmails(studEmails, formLink) {
         pass: process.env.PASS,
       },
     });
-
-
-
-
     const mailOptions = {
       from: process.env.EMAIL,
       to: studEmails,
       subject: "Assessment Google Form",
       text: `Here is the assessment form link: ${formLink}`,
     };
-
-
     for (const email of studEmails) {
       mailOptions.to = email;
       await transporter.sendMail(mailOptions);
@@ -144,9 +131,6 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
-
-
-
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -156,8 +140,6 @@ mongoose
     console.log("Connected to database");
   })
   .catch((e) => console.log(e));
-
-
 const multer = require("multer");
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -168,11 +150,10 @@ const storage = multer.diskStorage({
   },
 });
 
-
 app.post("/update-form-deadline", async (req, res) => {
   try {
     const { formId, newDeadline } = req.body;
-    const response = await updateFormDeadline(formId, newDeadline);  
+    const response = await updateFormDeadline(formId, newDeadline);
     res.json(response);
   } catch (error) {
     console.error('Error updating form deadline:', error);
@@ -180,25 +161,20 @@ app.post("/update-form-deadline", async (req, res) => {
   }
 });
 
-
 async function updateFormDeadline(formId, newDeadline) {
   try {
     const authClient = await auth.getClient({
       keyFile: './routes/keys.json',
       scopes: 'https://www.googleapis.com/auth/forms',
     });
-   
     const forms = google.forms({ version: 'v1', auth: authClient });
-   
     const requestBody = {
       deadline: newDeadline.toISOString(),
     };
-   
     const response = await forms.forms.update({
       formId: formId,
       requestBody: requestBody
     });
-   
     console.log('Form deadline updated:', response.data);
     return response.data;
   } catch (error) {
@@ -207,53 +183,43 @@ async function updateFormDeadline(formId, newDeadline) {
   }
 }
 
-
 require("./pdfData");
 const pdfparse = require('pdf-parse');
 const PdfTableExtractor = require("pdf-table-extractor");
 
-
-app.post("/upload-files", async (req, res) => {
+app.post("/upload-files", upload.array("pdfFiles"), async (req, res) => {
   try {
-    upload(req, res, async function (err) {
-      if (err instanceof multer.MulterError) {
-        console.error('Multer error:', err);
-        return res.status(500).json({ status: "error", message: "Failed to process PDF files" });
-      } else if (err) {
-        console.error('Error uploading files:', err);
-        return res.status(500).json({ status: "error", message: "Failed to upload files" });
-      }
-      const files = req.files;
-      for (const file of files) {
-        let pdfData = "";
-        let tableData = [];
-        if (file.mimetype === 'application/pdf') {
-          const pdfFile = fs.readFileSync(file.path);
-          try {
-            const pdfText = await pdfparse(pdfFile);
-            pdfData = pdfText.text;
-            const pdfTables = await PdfTableExtractor.process(pdfFile);
-            pdfTables.forEach(pageTables => {
-              pageTables.forEach(table => {
-                tableData.push(table);
-              });
+    const files = req.files;
+    const uploadedFiles = [];
+    for (const file of files) {
+      let pdfData = "";
+      let tableData = [];
+      if (file.mimetype === 'application/pdf') {
+        const pdfFile = fs.readFileSync(file.path);
+        try {
+          const pdfText = await pdfparse(pdfFile);
+          pdfData = pdfText.text;
+          const pdfTables = await PdfTableExtractor.process(pdfFile);
+          pdfTables.forEach(pageTables => {
+            pageTables.forEach(table => {
+              tableData.push(table);
             });
-          } catch (error) {
-            console.error('Error extracting tables from PDF:', error);
-          }
-        } else {
-          console.log(`Unsupported file type: ${file.mimetype}`);
+          });
+        } catch (error) {
+          console.error('Error extracting tables from PDF:', error);
         }
-        await PdfSchema.create({ pdf: file.filename, pdfdata: pdfData, tables: tableData });
+      } else {
+        console.log(`Unsupported file type: ${file.mimetype}`);
       }
-      return res.send({ status: "Success" });
-    });
+      uploadedFiles.push({ filename: file.originalname, pdfdata: pdfData, tables: tableData });
+    }
+    await PdfSchema.insertMany(uploadedFiles);
+    return res.json({ status: "Success", files: uploadedFiles });
   } catch (error) {
     console.error('Error processing uploaded files:', error);
     return res.status(500).json({ status: "error", message: "Failed to process uploaded files" });
   }
 });
-
 
 const { spawn } = require('child_process');
 app.post("/call-python-script", async (req, res) => {
@@ -266,7 +232,6 @@ app.post("/call-python-script", async (req, res) => {
     res.status(500).json({ error: "Failed to call Python script" });
   }
 });
-
 
 function callPythonScript(question, context) {
   return new Promise((resolve, reject) => {
@@ -289,5 +254,6 @@ function callPythonScript(question, context) {
     });
   });
 }
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
