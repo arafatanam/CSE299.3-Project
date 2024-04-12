@@ -18,6 +18,7 @@ const pdfparse = require('pdf-parse');
 const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
+
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -28,6 +29,8 @@ app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
 
+
+
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -36,6 +39,7 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
+
 
 app.post("/getData", async (req, res) => {
   try {
@@ -77,6 +81,7 @@ app.post("/getData", async (req, res) => {
   }
 });
 
+
 async function createForm(questions) {
   const authClient = new google.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
@@ -101,6 +106,7 @@ async function createForm(questions) {
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
+
 
 async function sendEmails(studEmails, formLink) {
   try {
@@ -131,6 +137,7 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
+
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -150,6 +157,7 @@ const storage = multer.diskStorage({
   },
 });
 
+
 app.post("/update-form-deadline", async (req, res) => {
   try {
     const { formId, newDeadline } = req.body;
@@ -160,6 +168,28 @@ app.post("/update-form-deadline", async (req, res) => {
     res.status(500).json({ error: "Failed to update form deadline" });
   }
 });
+
+
+async function updateFormDeadline(formId, newDeadline) {
+  try {
+    const authClient = new google.auth.JWT(keys.client_email, null, keys.private_key, ["https://www.googleapis.com/auth/forms"]);
+    await authClient.authorize();
+    const forms = google.forms({ version: 'v1', auth: authClient });
+    const requestBody = {
+      deadline: newDeadline.toISOString(),
+    };
+    const response = await forms.forms.update({
+      formId: formId,
+      requestBody: requestBody
+    });
+    console.log('Form deadline updated:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating form deadline:', error);
+    throw error;
+  }
+}
+
 
 async function updateFormDeadline(formId, newDeadline) {
   try {
@@ -183,9 +213,11 @@ async function updateFormDeadline(formId, newDeadline) {
   }
 }
 
+
 require("./pdfData");
 const pdfparse = require('pdf-parse');
 const PdfTableExtractor = require("pdf-table-extractor");
+
 
 app.post("/upload-files", upload.array("pdfFiles"), async (req, res) => {
   try {
@@ -221,6 +253,7 @@ app.post("/upload-files", upload.array("pdfFiles"), async (req, res) => {
   }
 });
 
+
 const { spawn } = require('child_process');
 app.post("/call-python-script", async (req, res) => {
   try {
@@ -232,6 +265,7 @@ app.post("/call-python-script", async (req, res) => {
     res.status(500).json({ error: "Failed to call Python script" });
   }
 });
+
 
 function callPythonScript(question, context) {
   return new Promise((resolve, reject) => {
@@ -255,5 +289,9 @@ function callPythonScript(question, context) {
   });
 }
 
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
+
+
