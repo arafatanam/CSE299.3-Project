@@ -226,13 +226,13 @@ app.post("/upload-files", upload.array("pdfFiles"), async (req, res) => {
     const files = req.files;
     const uploadedFiles = [];
     for (const file of files) {
-      let pdfData = "";
+      let fileData = "";
       let tableData = [];
       if (file.mimetype === 'application/pdf') {
         const pdfFile = fs.readFileSync(file.path);
         try {
           const pdfText = await pdfparse(pdfFile);
-          pdfData = pdfText.text;
+          fileData = pdfText.text;
           const pdfTables = await PdfTableExtractor.process(pdfFile);
           pdfTables.forEach(pageTables => {
             pageTables.forEach(table => {
@@ -244,10 +244,10 @@ app.post("/upload-files", upload.array("pdfFiles"), async (req, res) => {
         }
       } else {
         console.log(`Unsupported file type: ${file.mimetype}`);
+        // Handle other file types here
       }
-      uploadedFiles.push({ filename: file.originalname, pdfdata: pdfData, tables: tableData });
+      uploadedFiles.push({ filename: file.originalname, fileData: fileData, tables: tableData });
     }
-    await PdfSchema.insertMany(uploadedFiles);
     return res.json({ status: "Success", files: uploadedFiles });
   } catch (error) {
     console.error('Error processing uploaded files:', error);
@@ -321,6 +321,3 @@ app.listen(PORT, () => {
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
-
