@@ -218,10 +218,9 @@ async function updateFormDeadline(formId, newDeadline) {
 
 require("./pdfData");
 const pdfparse = require('pdf-parse');
-const PdfTableExtractor = require("pdf-table-extractor");
+const upload = multer({ dest: "uploads/" });
 
-
-app.post("/upload-files", upload.array("pdfFiles"), async (req, res) => {
+app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => { // Set maximum file uploads to 5
   try {
     const files = req.files;
     const uploadedFiles = [];
@@ -242,10 +241,7 @@ app.post("/upload-files", upload.array("pdfFiles"), async (req, res) => {
         } catch (error) {
           console.error('Error extracting tables from PDF:', error);
         }
-      } else {
-        console.log(`Unsupported file type: ${file.mimetype}`);
-        // Handle other file types here
-      }
+      } 
       uploadedFiles.push({ filename: file.originalname, fileData: fileData, tables: tableData });
     }
     return res.json({ status: "Success", files: uploadedFiles });
