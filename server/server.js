@@ -286,27 +286,54 @@ app.post("/call-python-script", async (req, res) => {
 });
 
 
+async function callOpenAIModel(question, context) {
+ try {
+ const response = await axios.post('https://api.openai.com/v1/completions', {
+ model: "text-davinci-003",
+ prompt: `${context}\nQ: ${question}\nA:`,
+ max_tokens: 150,
+ temperature: 0.7,
+ n: 1
+ }, {
+ headers: {
+ 'Content-Type': 'application/json',
+ 'Authorization': 'Bearer YOUR_OPENAI_API_KEY'
+ }
+ });
+ const completion = response.data.choices[0].text.trim();
+ return completion;
+ } catch (error) {
+ console.error('Error calling OpenAI API:', error.message);
+ throw new Error('Failed to call OpenAI API');
+ }
+}
+
+
 async function callRetrievalAugmentedGeneration(question, context) {
-  try {
-    const response = await axios.post('https://your-model-api-url', { question, context });
-    return response.data.result;
-  } catch (error) {
-    console.error('Error calling retrieval-augmented generation model:', error.message);
-    throw new Error('Failed to call retrieval-augmented generation model');
-  }
+ try {
+ // Call retrieval-augmented generation model (in this case, OpenAI API)
+ const result = await callOpenAIModel(question, context);
+ return result;
+ } catch (error) {
+ console.error('Error calling retrieval-augmented generation model:', error.message);
+ throw new Error('Failed to call retrieval-augmented generation model');
+ }
 }
 
 
 async function callPythonScript(question, context) {
-  try {
-    const result = await callRetrievalAugmentedGeneration(question, context);
-    return result;
-  } catch (error) {
-    console.error('Error calling Python script:', error.message);
-    throw new Error('Failed to call retrieval-augmented generation model');
-  }
+ try {
+ // Call retrieval-augmented generation model
+ const result = await callRetrievalAugmentedGeneration(question, context);
+ return result;
+ } catch (error) {
+ console.error('Error calling Python script:', error.message);
+ throw new Error('Failed to call retrieval-augmented generation model');
+ }
 }
 
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
+
