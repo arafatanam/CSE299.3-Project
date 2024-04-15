@@ -207,32 +207,48 @@ app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => {
   try {
     const files = req.files;
     const uploadedFiles = [];
+
     for (const file of files) {
       let fileData = "";
-      let tableData = [];
+      let vectorData = [];
+
       if (file.mimetype === 'application/pdf') {
         const pdfFile = fs.readFileSync(file.path);
         try {
-          const pdfText = await pdfparse(pdfFile);
-          fileData = pdfText.text;
-          const pdfTables = await PdfTableExtractor.process(pdfFile);
-          pdfTables.forEach(pageTables => {
-            pageTables.forEach(table => {
-              tableData.push(table);
-            });
-          });
+          fileData = pdfFile.toString('base64'); // Store PDF file data if needed
+          vectorData = await extractVectorDataFromPDF(pdfFile); // Extract vector data
         } catch (error) {
-          console.error('Error extracting tables from PDF:', error);
+          console.error('Error extracting vector data from PDF:', error);
         }
       }
-      uploadedFiles.push({ filename: file.originalname, fileData: fileData, tables: tableData });
+
+      uploadedFiles.push({ filename: file.originalname, fileData: fileData, vectorData: vectorData });
     }
+
     return res.json({ status: "Success", files: uploadedFiles });
   } catch (error) {
     console.error('Error processing uploaded files:', error);
     return res.status(500).json({ status: "error", message: "Failed to process uploaded files" });
   }
 });
+async function extractVectorDataFromPDF(pdfBuffer) {
+  const data = new Uint8Array(pdfBuffer);
+  const doc = await pdfjs.getDocument(data).promise;
+  const pageNum = doc.numPages;
+
+  const vectorData = [];
+
+  for (let i = 1; i <= pageNum; i++) {
+    const page = await doc.getPage(i);
+    const operatorList = await page.getOperatorList();
+    const svgGfx = new pdfjs.SVGGraphics(page.commonObjs, page.objs);
+    svgGfx.getSVG(operatorList, (svg) => {
+      vectorData.push(svg);
+    });
+  }
+  return vectorData;
+}
+
 const { spawn } = require('child_process');
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
