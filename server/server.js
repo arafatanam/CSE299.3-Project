@@ -37,6 +37,8 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
+
+
 app.post("/getData", async (req, res) => {
   try {
     const { studentInfoLink, assessmentLink } = req.body;
@@ -76,6 +78,8 @@ app.post("/getData", async (req, res) => {
     res.status(500).json({ error: "Failed to process data" });
   }
 });
+
+
 async function createForm(questions) {
   const authClient = new google.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
@@ -100,6 +104,8 @@ async function createForm(questions) {
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 }
+
+
 async function sendEmails(studEmails, formLink) {
   try {
     const transporter = nodemailer.createTransport({
@@ -131,6 +137,8 @@ async function sendEmails(studEmails, formLink) {
     return false;
   }
 }
+
+
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -149,6 +157,8 @@ const storage = multer.diskStorage({
     cb(null, file.originalname);
   },
 });
+
+
 app.post("/update-form-deadline", async (req, res) => {
   try {
     const { formId, newDeadline } = req.body;
@@ -162,6 +172,8 @@ app.post("/update-form-deadline", async (req, res) => {
     res.status(500).json({ error: "Failed to update form deadline" });
   }
 });
+
+
 async function updateFormDeadline(formId, newDeadline) {
   try {
     const authClient = new google.auth.JWT(keys.client_email, null, keys.private_key, ["https://www.googleapis.com/auth/forms"]);
@@ -181,6 +193,8 @@ async function updateFormDeadline(formId, newDeadline) {
     throw error;
   }
 }
+
+
 async function updateFormDeadline(formId, newDeadline) {
   try {
     const authClient = new google.auth.JWT(keys.client_email, null, keys.private_key, ["https://www.googleapis.com/auth/forms"]);
@@ -200,6 +214,8 @@ async function updateFormDeadline(formId, newDeadline) {
     throw error;
   }
 }
+
+
 require("./pdfData");
 const pdfparse = require('pdf-parse');
 const upload = multer({ dest: "uploads/" });
@@ -207,11 +223,9 @@ app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => {
   try {
     const files = req.files;
     const uploadedFiles = [];
-
     for (const file of files) {
       let fileData = "";
       let vectorData = [];
-
       if (file.mimetype === 'application/pdf') {
         const pdfFile = fs.readFileSync(file.path);
         try {
@@ -221,23 +235,21 @@ app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => {
           console.error('Error extracting vector data from PDF:', error);
         }
       }
-
       uploadedFiles.push({ filename: file.originalname, fileData: fileData, vectorData: vectorData });
     }
-
     return res.json({ status: "Success", files: uploadedFiles });
   } catch (error) {
     console.error('Error processing uploaded files:', error);
     return res.status(500).json({ status: "error", message: "Failed to process uploaded files" });
   }
 });
+
+
 async function extractVectorDataFromPDF(pdfBuffer) {
   const data = new Uint8Array(pdfBuffer);
   const doc = await pdfjs.getDocument(data).promise;
   const pageNum = doc.numPages;
-
   const vectorData = [];
-
   for (let i = 1; i <= pageNum; i++) {
     const page = await doc.getPage(i);
     const operatorList = await page.getOperatorList();
@@ -249,17 +261,16 @@ async function extractVectorDataFromPDF(pdfBuffer) {
   return vectorData;
 }
 
+
 const { spawn } = require('child_process');
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 app.post("/call-python-script", async (req, res) => {
   try {
-    const { queries } = req.body; 
+    const { queries } = req.body;
     if (!queries || !Array.isArray(queries)) {
       throw new Error("Missing queries array in request body");
     }
-
-
     const results = await Promise.all(queries.map(async query => {
       const { question, context } = query;
       if (!question || !context) {
@@ -267,44 +278,35 @@ app.post("/call-python-script", async (req, res) => {
       }
       return callPythonScript(question, context);
     }));
-
-
     res.json({ results });
   } catch (error) {
     console.error('Error calling Python script:', error.message);
     res.status(500).json({ error: "Failed to call Python script" });
   }
 });
-function callPythonScript(question, context) {
-  return new Promise((resolve, reject) => {
-    const pythonProcess = spawn('python', ['model.py', question, context]);
-    let result = '';
-    pythonProcess.stdout.on('data', (data) => {
-      result += data.toString();
-    });
-    pythonProcess.stderr.on('data', (data) => {
-      console.error(`Error from Python script: ${data}`);
-      reject(new Error(`Error from Python script: ${data}`));
-    });
-    pythonProcess.on('close', (code) => {
-      if (code === 0) {
-        resolve(result.trim());
-      } else {
-        console.error(`Python script exited with code ${code}`);
-        reject(new Error(`Python script exited with code ${code}`));
-      }
-    });
-    pythonProcess.on('error', (err) => {
-      console.error('Failed to start Python script:', err);
-      reject(err);
-    });
-  });
+
+
+async function callRetrievalAugmentedGeneration(question, context) {
+  try {
+    const response = await axios.post('https://your-model-api-url', { question, context });
+    return response.data.result;
+  } catch (error) {
+    console.error('Error calling retrieval-augmented generation model:', error.message);
+    throw new Error('Failed to call retrieval-augmented generation model');
+  }
 }
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+
+
+async function callPythonScript(question, context) {
+  try {
+    const result = await callRetrievalAugmentedGeneration(question, context);
+    return result;
+  } catch (error) {
+    console.error('Error calling Python script:', error.message);
+    throw new Error('Failed to call retrieval-augmented generation model');
+  }
+}
+
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
