@@ -217,23 +217,20 @@ async function updateFormDeadline(formId, newDeadline) {
 require("./pdfData");
 const pdfparse = require('pdf-parse');
 const upload = multer({ dest: "uploads/" });
+
+
 app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => {
   try {
     const files = req.files;
     const uploadedFiles = [];
     for (const file of files) {
-      let fileData = "";
       let vectorData = [];
       if (file.mimetype === 'application/pdf') {
+        // Read the uploaded PDF file
         const pdfFile = fs.readFileSync(file.path);
-        try {
-          fileData = pdfFile.toString('base64'); // Store PDF file data if needed
-          vectorData = await extractVectorDataFromPDF(pdfFile); // Extract vector data
-        } catch (error) {
-          console.error('Error extracting vector data from PDF:', error);
-        }
+        vectorData = await extractVectorDataFromPDF(pdfFile);
       }
-      uploadedFiles.push({ filename: file.originalname, fileData: fileData, vectorData: vectorData });
+      uploadedFiles.push({ filename: file.originalname, vectorData: vectorData });
     }
     return res.json({ status: "Success", files: uploadedFiles });
   } catch (error) {
@@ -241,8 +238,6 @@ app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => {
     return res.status(500).json({ status: "error", message: "Failed to process uploaded files" });
   }
 });
-
-
 
 
 async function extractVectorDataFromPDF(pdfBuffer) {
@@ -343,3 +338,7 @@ async function callPythonScript(question, context) {
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
+
+
+
+
