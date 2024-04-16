@@ -19,6 +19,8 @@ const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
 
+
+
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -29,6 +31,8 @@ app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
 
+
+
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -37,6 +41,8 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
+
+
 
 
 app.post("/getData", async (req, res) => {
@@ -59,9 +65,12 @@ app.post("/getData", async (req, res) => {
       questions.push(question);
     }
     const studEmails = [];
+    const studentMarks = []; // Array to store student marks
     for (let i = 0; i < studentDataCount; i++) {
       const studEmail = data2.data.values[i][0];
+      const mark = Math.floor(Math.random() * 100) + 1; // Generate random mark
       studEmails.push(studEmail);
+      studentMarks.push({ email: studEmail, mark }); // Push email and mark to the array
     }
     const formLink = await createForm(questions);
     const emailsSent = await sendEmails(studEmails, formLink);
@@ -71,7 +80,7 @@ app.post("/getData", async (req, res) => {
       console.log("Failed to send emails");
     }
     await runScript(questions);
-    res.json({ studentInfoLink, assessmentLink, assessmentDataCount, studentDataCount, data, data2, formLink });
+    res.json({ studentInfoLink, assessmentLink, assessmentDataCount, studentDataCount, data, data2, formLink, studentMarks }); // Include student marks in the response
   }
   catch (error) {
     console.error(error);
@@ -106,6 +115,8 @@ async function createForm(questions) {
 }
 
 
+
+
 async function sendEmails(studEmails, formLink) {
   try {
     const transporter = nodemailer.createTransport({
@@ -120,12 +131,12 @@ async function sendEmails(studEmails, formLink) {
     });
     const mailsData = [];
     for (const email of studEmails) {
-      const mark = Math.floor(Math.random() * 100) + 1;
+      const mark = Math.floor(Math.random() * 100) + 1; // Generate a random mark
       const mailOptions = {
         from: process.env.EMAIL,
         to: email,
         subject: "Assessment Google Form",
-        text: `Here is the assessment form link: ${formLink}. Your random mark is: ${mark}`,
+        text: `Here is the assessment form link: ${formLink}. Your random mark is: ${mark}`, // Include the random mark in the email text
       };
       await transporter.sendMail(mailOptions);
       mailsData.push({ email, mark });
@@ -137,6 +148,8 @@ async function sendEmails(studEmails, formLink) {
     return false;
   }
 }
+
+
 
 
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
@@ -159,6 +172,8 @@ const storage = multer.diskStorage({
 });
 
 
+
+
 app.post("/update-form-deadline", async (req, res) => {
   try {
     const { formId, newDeadline } = req.body;
@@ -172,6 +187,8 @@ app.post("/update-form-deadline", async (req, res) => {
     res.status(500).json({ error: "Failed to update form deadline" });
   }
 });
+
+
 
 
 async function updateFormDeadline(formId, newDeadline) {
@@ -193,6 +210,8 @@ async function updateFormDeadline(formId, newDeadline) {
     throw error;
   }
 }
+
+
 
 
 require("./pdfData");
@@ -224,6 +243,8 @@ app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => {
 });
 
 
+
+
 async function extractVectorDataFromPDF(pdfBuffer) {
   const data = new Uint8Array(pdfBuffer);
   const doc = await pdfjs.getDocument(data).promise;
@@ -239,6 +260,8 @@ async function extractVectorDataFromPDF(pdfBuffer) {
   }
   return vectorData;
 }
+
+
 
 
 const { spawn } = require('child_process');
@@ -265,6 +288,8 @@ app.post("/call-python-script", async (req, res) => {
 });
 
 
+
+
 async function callOpenAIModel(question, context) {
  try {
  const response = await axios.post('https://api.openai.com/v1/completions', {
@@ -288,9 +313,10 @@ async function callOpenAIModel(question, context) {
 }
 
 
+
+
 async function callRetrievalAugmentedGeneration(question, context) {
  try {
- // Call retrieval-augmented generation model (in this case, OpenAI API)
  const result = await callOpenAIModel(question, context);
  return result;
  } catch (error) {
@@ -300,9 +326,10 @@ async function callRetrievalAugmentedGeneration(question, context) {
 }
 
 
+
+
 async function callPythonScript(question, context) {
  try {
- // Call retrieval-augmented generation model
  const result = await callRetrievalAugmentedGeneration(question, context);
  return result;
  } catch (error) {
@@ -312,7 +339,7 @@ async function callPythonScript(question, context) {
 }
 
 
+
+
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
-
-
