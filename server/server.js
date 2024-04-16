@@ -195,27 +195,6 @@ async function updateFormDeadline(formId, newDeadline) {
 }
 
 
-async function updateFormDeadline(formId, newDeadline) {
-  try {
-    const authClient = new google.auth.JWT(keys.client_email, null, keys.private_key, ["https://www.googleapis.com/auth/forms"]);
-    await authClient.authorize();
-    const forms = google.forms({ version: 'v1', auth: authClient });
-    const requestBody = {
-      deadline: newDeadline.toISOString(),
-    };
-    const response = await forms.forms.update({
-      formId: formId,
-      requestBody: requestBody
-    });
-    console.log('Form deadline updated:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Error updating form deadline:', error);
-    throw error;
-  }
-}
-
-
 require("./pdfData");
 const pdfparse = require('pdf-parse');
 const upload = multer({ dest: "uploads/" });
