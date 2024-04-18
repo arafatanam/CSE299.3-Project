@@ -209,14 +209,13 @@ const pdfparse = require('pdf-parse');
 const upload = multer({ dest: "uploads/" });
 
 
-app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => {
+app.post("/upload-files", upload.array("pdfFiles", 10), async (req, res) => {
   try {
     const files = req.files;
     const uploadedFiles = [];
     for (const file of files) {
       let vectorData = [];
       if (file.mimetype === 'application/pdf') {
-        // Read the uploaded PDF file
         const pdfFile = fs.readFileSync(file.path);
         vectorData = await extractVectorDataFromPDF(pdfFile);
       }
@@ -239,9 +238,8 @@ async function extractVectorDataFromPDF(pdfBuffer) {
     const page = await doc.getPage(i);
     const operatorList = await page.getOperatorList();
     const svgGfx = new pdfjs.SVGGraphics(page.commonObjs, page.objs);
-    svgGfx.getSVG(operatorList, (svg) => {
-      vectorData.push(svg);
-    });
+    const svg = await svgGfx.getSVG(operatorList);
+    vectorData.push(svg);
   }
   return vectorData;
 }
