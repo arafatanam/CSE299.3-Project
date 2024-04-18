@@ -18,6 +18,7 @@ const pdfparse = require('pdf-parse');
 const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
+
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -27,6 +28,7 @@ app.use(cors({ origin: "http://localhost:3000", methods: "GET,POST,PUT,DELETE", 
 app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
+
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -35,6 +37,7 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
+
 
 app.post("/getData", async (req, res) => {
   try {
@@ -79,30 +82,38 @@ app.post("/getData", async (req, res) => {
   }
 });
 
-async function createForm(questions) {
-  const authClient = new google.auth.GoogleAuth({
-    credentials: require('./routes/keys.json'),
-    scopes: 'https://www.googleapis.com/auth/drive',
-  });
-  const forms = googleform.forms({ version: 'v1', auth: authClient });
-  const deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  const newForm = {
-    info: {
-      title: 'Assessment',
-      deadline: deadline,
-    },
-    items: questions.map(question => ({
-      title: question,
-      paragraphItem: {},
-      type: 'PARAGRAPH_TEXT'
-    })),
-  };
-  const response = await forms.forms.create({ requestBody: newForm });
-  const formId = response.data.formId;
-  console.log(response.data);
-  const formLink = `https://docs.google.com/forms/d/${formId}`;
-  return formLink;
+
+async function createForm(questions, deadline) {
+  try {
+    const authClient = new google.auth.GoogleAuth({
+      credentials: require('./routes/keys.json'),
+      scopes: 'https://www.googleapis.com/auth/drive',
+    });
+    const forms = googleform.forms({ version: 'v1', auth: authClient });
+
+
+    const newForm = {
+      info: {
+        title: 'Assessment',
+        deadline: deadline.toISOString(),
+      },
+      items: questions.map(question => ({
+        title: question,
+        paragraphItem: {},
+        type: 'PARAGRAPH_TEXT'
+      })),
+    };
+    const response = await forms.forms.create({ requestBody: newForm });
+    const formId = response.data.formId;
+    console.log(response.data);
+    const formLink = `https://docs.google.com/forms/d/${formId}`;
+    return formLink;
+  } catch (error) {
+    console.error('Error creating form:', error.message);
+    throw new Error('Failed to create form');
+  }
 }
+
 
 async function sendEmails(studEmails, formLink) {
   try {
@@ -136,6 +147,7 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
+
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -155,6 +167,7 @@ const storage = multer.diskStorage({
   },
 });
 
+
 app.post("/update-form-deadline", async (req, res) => {
   try {
     const { formId, newDeadline } = req.body;
@@ -168,6 +181,7 @@ app.post("/update-form-deadline", async (req, res) => {
     res.status(500).json({ error: "Failed to update form deadline" });
   }
 });
+
 
 async function updateFormDeadline(formId, newDeadline) {
   try {
@@ -189,9 +203,11 @@ async function updateFormDeadline(formId, newDeadline) {
   }
 }
 
+
 require("./pdfData");
 const pdfparse = require('pdf-parse');
 const upload = multer({ dest: "uploads/" });
+
 
 app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => {
   try {
@@ -213,6 +229,7 @@ app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => {
   }
 });
 
+
 async function extractVectorDataFromPDF(pdfBuffer) {
   const data = new Uint8Array(pdfBuffer);
   const doc = await pdfjs.getDocument(data).promise;
@@ -229,6 +246,7 @@ async function extractVectorDataFromPDF(pdfBuffer) {
   return vectorData;
 }
 
+
 const { spawn } = require('child_process');
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
@@ -243,36 +261,15 @@ app.post("/call-python-script", async (req, res) => {
       if (!question || !context) {
         throw new Error("Missing question or context in query object");
       }
-      return callPythonScript(question, context);
+      return callRAGModel(question, context);
     }));
     res.json({ results });
   } catch (error) {
-    console.error('Error calling Python script:', error.message);
-    res.status(500).json({ error: "Failed to call Python script" });
+    console.error('Error calling RAG model:', error.message);
+    res.status(500).json({ error: "Failed to call RAG model" });
   }
 });
 
-async function callOpenAIModel(question, context) {
- try {
- const response = await axios.post('https://api.openai.com/v1/completions', {
- model: "text-davinci-003",
- prompt: `${context}\nQ: ${question}\nA:`,
- max_tokens: 150,
- temperature: 0.7,
- n: 1
- }, {
- headers: {
- 'Content-Type': 'application/json',
- 'Authorization': 'Bearer YOUR_OPENAI_API_KEY'
- }
- });
- const completion = response.data.choices[0].text.trim();
- return completion;
- } catch (error) {
- console.error('Error calling OpenAI API:', error.message);
- throw new Error('Failed to call OpenAI API');
- }
-}
 
 async function callRAGModel(question, context) {
   try {
@@ -299,6 +296,7 @@ async function callPythonScript(question, context) {
  throw new Error('Failed to call retrieval-augmented generation model');
  }
 }
+
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
