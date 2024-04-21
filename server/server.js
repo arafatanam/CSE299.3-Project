@@ -168,21 +168,6 @@ const storage = multer.diskStorage({
 });
 
 
-app.post("/update-form-deadline", async (req, res) => {
-  try {
-    const { formId, newDeadline } = req.body;
-    if (!formId || !newDeadline) {
-      throw new Error("Missing formId or newDeadline in request body");
-    }
-    const response = await updateFormDeadline(formId, new Date(newDeadline));
-    res.json(response);
-  } catch (error) {
-    console.error('Error updating form deadline:', error.message);
-    res.status(500).json({ error: "Failed to update form deadline" });
-  }
-});
-
-
 async function updateFormDeadline(formId, newDeadline) {
   try {
     const authClient = new google.auth.JWT(keys.client_email, null, keys.private_key, ["https://www.googleapis.com/auth/forms"]);
@@ -231,24 +216,37 @@ app.post("/upload-files", upload.array("pdfFiles", 10), async (req, res) => {
 
 async function extractVectorDataFromPDF(pdfBuffer) {
   try {
-    const doc = await pdfjs.getDocument(pdfBuffer).promise;
-    const pageNum = doc.numPages;
-    const vectorData = [];
-    for (let i = 1; i <= pageNum; i++) {
-      const page = await doc.getPage(i);
-      const operatorList = await page.getOperatorList();
-      const svgGfx = new pdfjs.SVGGraphics(page.commonObjs, page.objs);
-      const svg = await svgGfx.getSVG(operatorList);
-      vectorData.push(svg);
-    }
-    return vectorData;
+    const pdfPath = './temp.pdf';
+    fs.writeFileSync(pdfPath, pdfBuffer);
+
+
+    const svgPath = './temp.svg';
+
+
+    await new Promise((resolve, reject) => {
+      exec(`pdf2svg ${pdfPath} ${svgPath}`, (error, stdout, stderr) => {
+        if (error) {
+          console.error('Error converting PDF to SVG:', error);
+          reject(new Error('Failed to convert PDF to SVG'));
+          return;
+        }
+        console.log('PDF converted to SVG successfully');
+        resolve();
+      });
+    });
+
+
+    const svgData = fs.readFileSync(svgPath, 'utf-8');
+    fs.unlinkSync(pdfPath);
+    fs.unlinkSync(svgPath);
+
+
+    return svgData;
   } catch (error) {
     console.error('Error extracting vector data from PDF:', error);
     throw new Error('Failed to extract vector data from PDF');
   }
 }
-
-
 
 
 const { spawn } = require('child_process');
