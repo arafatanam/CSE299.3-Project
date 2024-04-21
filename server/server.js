@@ -79,29 +79,34 @@ app.post("/getData", async (req, res) => {
   }
 });
 
-async function createForm(questions) {
-  const authClient = new google.auth.GoogleAuth({
-    credentials: require('./routes/keys.json'),
-    scopes: 'https://www.googleapis.com/auth/drive',
-  });
-  const forms = googleform.forms({ version: 'v1', auth: authClient });
-  const deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  const newForm = {
-    info: {
-      title: 'Assessment',
-      deadline: deadline,
-    },
-    items: questions.map(question => ({
-      title: question,
-      paragraphItem: {},
-      type: 'PARAGRAPH_TEXT'
-    })),
-  };
-  const response = await forms.forms.create({ requestBody: newForm });
-  const formId = response.data.formId;
-  console.log(response.data);
-  const formLink = `https://docs.google.com/forms/d/${formId}`;
-  return formLink;
+async function createForm(questions, deadline) {
+  try {
+    const authClient = new google.auth.GoogleAuth({
+      credentials: require('./routes/keys.json'),
+      scopes: 'https://www.googleapis.com/auth/drive',
+    });
+    const forms = googleform.forms({ version: 'v1', auth: authClient });
+
+    const newForm = {
+      info: {
+        title: 'Assessment',
+        deadline: deadline.toISOString(),
+      },
+      items: questions.map(question => ({
+        title: question,
+        paragraphItem: {},
+        type: 'PARAGRAPH_TEXT'
+      })),
+    };
+    const response = await forms.forms.create({ requestBody: newForm });
+    const formId = response.data.formId;
+    console.log(response.data);
+    const formLink = `https://docs.google.com/forms/d/${formId}`;
+    return formLink;
+  } catch (error) {
+    console.error('Error creating form:', error.message);
+    throw new Error('Failed to create form');
+  }
 }
 
 async function sendEmails(studEmails, formLink) {
@@ -193,14 +198,13 @@ require("./pdfData");
 const pdfparse = require('pdf-parse');
 const upload = multer({ dest: "uploads/" });
 
-app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => {
+app.post("/upload-files", upload.array("pdfFiles", 10), async (req, res) => {
   try {
     const files = req.files;
     const uploadedFiles = [];
     for (const file of files) {
       let vectorData = [];
       if (file.mimetype === 'application/pdf') {
-        // Read the uploaded PDF file
         const pdfFile = fs.readFileSync(file.path);
         vectorData = await extractVectorDataFromPDF(pdfFile);
       }
@@ -214,20 +218,24 @@ app.post("/upload-files", upload.array("pdfFiles", 5), async (req, res) => {
 });
 
 async function extractVectorDataFromPDF(pdfBuffer) {
-  const data = new Uint8Array(pdfBuffer);
-  const doc = await pdfjs.getDocument(data).promise;
-  const pageNum = doc.numPages;
-  const vectorData = [];
-  for (let i = 1; i <= pageNum; i++) {
-    const page = await doc.getPage(i);
-    const operatorList = await page.getOperatorList();
-    const svgGfx = new pdfjs.SVGGraphics(page.commonObjs, page.objs);
-    svgGfx.getSVG(operatorList, (svg) => {
+  try {
+    const doc = await pdfjs.getDocument(pdfBuffer).promise;
+    const pageNum = doc.numPages;
+    const vectorData = [];
+    for (let i = 1; i <= pageNum; i++) {
+      const page = await doc.getPage(i);
+      const operatorList = await page.getOperatorList();
+      const svgGfx = new pdfjs.SVGGraphics(page.commonObjs, page.objs);
+      const svg = await svgGfx.getSVG(operatorList);
       vectorData.push(svg);
-    });
+    }
+    return vectorData;
+  } catch (error) {
+    console.error('Error extracting vector data from PDF:', error);
+    throw new Error('Failed to extract vector data from PDF');
   }
-  return vectorData;
 }
+
 
 const { spawn } = require('child_process');
 const bodyParser = require('body-parser');
@@ -243,36 +251,14 @@ app.post("/call-python-script", async (req, res) => {
       if (!question || !context) {
         throw new Error("Missing question or context in query object");
       }
-      return callPythonScript(question, context);
+      return callRAGModel(question, context);
     }));
     res.json({ results });
   } catch (error) {
-    console.error('Error calling Python script:', error.message);
-    res.status(500).json({ error: "Failed to call Python script" });
+    console.error('Error calling RAG model:', error.message);
+    res.status(500).json({ error: "Failed to call RAG model" });
   }
 });
-
-async function callOpenAIModel(question, context) {
- try {
- const response = await axios.post('https://api.openai.com/v1/completions', {
- model: "text-davinci-003",
- prompt: `${context}\nQ: ${question}\nA:`,
- max_tokens: 150,
- temperature: 0.7,
- n: 1
- }, {
- headers: {
- 'Content-Type': 'application/json',
- 'Authorization': 'Bearer YOUR_OPENAI_API_KEY'
- }
- });
- const completion = response.data.choices[0].text.trim();
- return completion;
- } catch (error) {
- console.error('Error calling OpenAI API:', error.message);
- throw new Error('Failed to call OpenAI API');
- }
-}
 
 async function callRAGModel(question, context) {
   try {
