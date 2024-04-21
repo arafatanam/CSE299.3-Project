@@ -18,6 +18,7 @@ const pdfparse = require('pdf-parse');
 const mongoose = require("mongoose");
 const PdfTableExtractor = require("pdf-table-extractor");
 
+
 app.use(express.json());
 app.use(cors());
 app.use(cookieSession({ name: "session", keys: ["cyberwolve"], maxAge: 24 * 60 * 60 * 100, }));
@@ -27,6 +28,7 @@ app.use(cors({ origin: "http://localhost:3000", methods: "GET,POST,PUT,DELETE", 
 app.use(bodyParser.json());
 app.use("/auth", authRoute);
 
+
 function getSpreadsheetIdFromLink(assessmentLink) {
   const url = new URL(assessmentLink);
   const pathSegments = url.pathname.split('/');
@@ -35,6 +37,7 @@ function getSpreadsheetIdFromLink(assessmentLink) {
   }
   return pathSegments[3];
 }
+
 
 app.post("/getData", async (req, res) => {
   try {
@@ -79,6 +82,7 @@ app.post("/getData", async (req, res) => {
   }
 });
 
+
 async function createForm(questions, deadline) {
   try {
     const authClient = new google.auth.GoogleAuth({
@@ -86,6 +90,7 @@ async function createForm(questions, deadline) {
       scopes: 'https://www.googleapis.com/auth/drive',
     });
     const forms = googleform.forms({ version: 'v1', auth: authClient });
+
 
     const newForm = {
       info: {
@@ -108,6 +113,7 @@ async function createForm(questions, deadline) {
     throw new Error('Failed to create form');
   }
 }
+
 
 async function sendEmails(studEmails, formLink) {
   try {
@@ -141,6 +147,7 @@ async function sendEmails(studEmails, formLink) {
   }
 }
 
+
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
 mongoose
   .connect(mongoUrl, {
@@ -160,6 +167,7 @@ const storage = multer.diskStorage({
   },
 });
 
+
 app.post("/update-form-deadline", async (req, res) => {
   try {
     const { formId, newDeadline } = req.body;
@@ -173,6 +181,7 @@ app.post("/update-form-deadline", async (req, res) => {
     res.status(500).json({ error: "Failed to update form deadline" });
   }
 });
+
 
 async function updateFormDeadline(formId, newDeadline) {
   try {
@@ -194,9 +203,11 @@ async function updateFormDeadline(formId, newDeadline) {
   }
 }
 
+
 require("./pdfData");
 const pdfparse = require('pdf-parse');
 const upload = multer({ dest: "uploads/" });
+
 
 app.post("/upload-files", upload.array("pdfFiles", 10), async (req, res) => {
   try {
@@ -217,20 +228,28 @@ app.post("/upload-files", upload.array("pdfFiles", 10), async (req, res) => {
   }
 });
 
+
 async function extractVectorDataFromPDF(pdfBuffer) {
-  const data = new Uint8Array(pdfBuffer);
-  const doc = await pdfjs.getDocument(data).promise;
-  const pageNum = doc.numPages;
-  const vectorData = [];
-  for (let i = 1; i <= pageNum; i++) {
-    const page = await doc.getPage(i);
-    const operatorList = await page.getOperatorList();
-    const svgGfx = new pdfjs.SVGGraphics(page.commonObjs, page.objs);
-    const svg = await svgGfx.getSVG(operatorList);
-    vectorData.push(svg);
+  try {
+    const doc = await pdfjs.getDocument(pdfBuffer).promise;
+    const pageNum = doc.numPages;
+    const vectorData = [];
+    for (let i = 1; i <= pageNum; i++) {
+      const page = await doc.getPage(i);
+      const operatorList = await page.getOperatorList();
+      const svgGfx = new pdfjs.SVGGraphics(page.commonObjs, page.objs);
+      const svg = await svgGfx.getSVG(operatorList);
+      vectorData.push(svg);
+    }
+    return vectorData;
+  } catch (error) {
+    console.error('Error extracting vector data from PDF:', error);
+    throw new Error('Failed to extract vector data from PDF');
   }
-  return vectorData;
 }
+
+
+
 
 const { spawn } = require('child_process');
 const bodyParser = require('body-parser');
@@ -255,6 +274,7 @@ app.post("/call-python-script", async (req, res) => {
   }
 });
 
+
 async function callRAGModel(question, context) {
   try {
     const response = await axios.post('RAG_MODEL_API_ENDPOINT', {
@@ -272,6 +292,7 @@ async function callRAGModel(question, context) {
   }
 }
 
+
 async function callPythonScript(question, context) {
  try {
  const result = await callRetrievalAugmentedGeneration(question, context);
@@ -281,6 +302,7 @@ async function callPythonScript(question, context) {
  throw new Error('Failed to call retrieval-augmented generation model');
  }
 }
+
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
