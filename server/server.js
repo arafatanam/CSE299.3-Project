@@ -218,24 +218,19 @@ app.post("/upload-files", upload.array("pdfFiles", 10), async (req, res) => {
 });
 
 async function extractVectorDataFromPDF(pdfBuffer) {
-  try {
-    const doc = await pdfjs.getDocument(pdfBuffer).promise;
-    const pageNum = doc.numPages;
-    const vectorData = [];
-    for (let i = 1; i <= pageNum; i++) {
-      const page = await doc.getPage(i);
-      const operatorList = await page.getOperatorList();
-      const svgGfx = new pdfjs.SVGGraphics(page.commonObjs, page.objs);
-      const svg = await svgGfx.getSVG(operatorList);
-      vectorData.push(svg);
-    }
-    return vectorData;
-  } catch (error) {
-    console.error('Error extracting vector data from PDF:', error);
-    throw new Error('Failed to extract vector data from PDF');
+  const data = new Uint8Array(pdfBuffer);
+  const doc = await pdfjs.getDocument(data).promise;
+  const pageNum = doc.numPages;
+  const vectorData = [];
+  for (let i = 1; i <= pageNum; i++) {
+    const page = await doc.getPage(i);
+    const operatorList = await page.getOperatorList();
+    const svgGfx = new pdfjs.SVGGraphics(page.commonObjs, page.objs);
+    const svg = await svgGfx.getSVG(operatorList);
+    vectorData.push(svg);
   }
+  return vectorData;
 }
-
 
 const { spawn } = require('child_process');
 const bodyParser = require('body-parser');
@@ -276,6 +271,7 @@ async function callRAGModel(question, context) {
     throw new Error('Failed to call RAG model');
   }
 }
+
 async function callPythonScript(question, context) {
  try {
  const result = await callRetrievalAugmentedGeneration(question, context);
