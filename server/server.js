@@ -215,37 +215,18 @@ app.post("/upload-files", upload.array("pdfFiles", 10), async (req, res) => {
 
 
 async function extractVectorDataFromPDF(pdfBuffer) {
-  try {
-    const pdfPath = './temp.pdf';
-    fs.writeFileSync(pdfPath, pdfBuffer);
-
-
-    const svgPath = './temp.svg';
-
-
-    await new Promise((resolve, reject) => {
-      exec(`pdf2svg ${pdfPath} ${svgPath}`, (error, stdout, stderr) => {
-        if (error) {
-          console.error('Error converting PDF to SVG:', error);
-          reject(new Error('Failed to convert PDF to SVG'));
-          return;
-        }
-        console.log('PDF converted to SVG successfully');
-        resolve();
-      });
-    });
-
-
-    const svgData = fs.readFileSync(svgPath, 'utf-8');
-    fs.unlinkSync(pdfPath);
-    fs.unlinkSync(svgPath);
-
-
-    return svgData;
-  } catch (error) {
-    console.error('Error extracting vector data from PDF:', error);
-    throw new Error('Failed to extract vector data from PDF');
+  const data = new Uint8Array(pdfBuffer);
+  const doc = await pdfjs.getDocument(data).promise;
+  const pageNum = doc.numPages;
+  const vectorData = [];
+  for (let i = 1; i <= pageNum; i++) {
+    const page = await doc.getPage(i);
+    const operatorList = await page.getOperatorList();
+    const svgGfx = new pdfjs.SVGGraphics(page.commonObjs, page.objs);
+    const svg = await svgGfx.getSVG(operatorList);
+    vectorData.push(svg);
   }
+  return vectorData;
 }
 
 
