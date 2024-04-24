@@ -179,18 +179,18 @@ const storage = multer.diskStorage({
 require("./pdfData");
 const PdfSchema = mongoose.model("PdfData");
 const upload = multer({ storage: storage });
+const pdfTextExtract = require('pdf-text-extract');
 
 
 app.post("/upload-files", upload.single("file"), async (req, res) => {
   const fileName = req.file.filename;
   const pdfFile = fs.readFileSync(`./files/${fileName}`);
-  const data = await pdfparse(pdfFile);
-  const pdfContent = data.text;
   try {
+    const pdfContent = await pdfTextExtract(pdfFile);    
     await PdfSchema.create({pdf: fileName, pdfdata: pdfContent});
     res.send({ status: "Success" });
   } catch (error) {
-    console.error('Error parsing PDF or saving to database:', error);
+    console.error('Error extracting text from PDF or saving to database:', error);
     res.status(500).json({ status: "error", message: "Failed to process PDF file" });
   }
 });
