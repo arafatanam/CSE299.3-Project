@@ -80,7 +80,7 @@ app.post("/getData", async (req, res) => {
 });
 
 
-async function createForm(questions) {
+async function createForm(questions, deadline) {
   const authClient = new googleform.auth.GoogleAuth({
     credentials: require('./routes/keys.json'),
     scopes: 'https://www.googleapis.com/auth/drive',
@@ -90,6 +90,29 @@ async function createForm(questions) {
   const response = await forms.forms.create({ requestBody: newForm });
   const formId = response.data.formId;
   console.log(response.data);
+
+  const requests = questions.map((question, index) => ({
+    createItem: {
+      item: {
+        title: question,
+        textItem: {}
+      },
+      location: {
+        index: index
+      }
+    }
+  }));
+
+  await forms.forms.batchUpdate({
+    formId: formId,
+    resource: { requests }
+  });
+
+  const formLink = `https://docs.google.com/forms/d/${formId}`;
+  await setFormDeadline(formId, deadline);  // Set the deadline after form creation
+  return formLink;
+}
+
 
 
 
