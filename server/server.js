@@ -134,38 +134,35 @@ async function createForm(questions, deadline) {
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
 
-async function sendEmails(studEmails, formLink) {
-  try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL,
-        pass: process.env.PASS,
-      },
-    });
-
-
-    const mailOptions = {
-      from: process.env.EMAIL,
-      to: studEmails,
-      subject: "Assessment Google Form",
-      text: `Here is the assessment form link: ${formLink}`,
-    };
-
-
-    for (const email of studEmails) {
-      mailOptions.to = email;
-      await transporter.sendMail(mailOptions);
+  async function sendEmails(studEmails, formLink) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        host: "smtp.ethereal.email",
+        port: 587,
+        secure: false,
+        auth: {
+          user: process.env.EMAIL,
+          pass: process.env.PASS,
+        },
+      });
+  
+      for (const email of studEmails) {
+        const mailOptions = {
+          from: process.env.EMAIL,
+          to: email,
+          subject: "Assessment Google Form",
+          text: `Dear student,\n\nPlease fill out the assessment form using the following link:\n\n${formLink}\n\nThank you.`,
+        };
+        await transporter.sendMail(mailOptions);
+      }
+      return true;
+    } catch (error) {
+      console.error('Error sending emails:', error);
+      return false;
     }
-    return true;
-  } catch (error) {
-    console.error('Error sending emails:', error);
-    return false;
   }
-}
+  
 
 
 const mongoUrl = "mongodb+srv://autoassess:autoassess@autoassess.lzuiaky.mongodb.net/?retryWrites=true&w=majority&appName=AutoAssess"
