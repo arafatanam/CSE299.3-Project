@@ -113,10 +113,6 @@ async function createForm(questions, deadline) {
   return formLink;
 }
 
-
-
-
-
   const requests = questions.map((question, index) => ({
     createItem: {
       item: {
@@ -135,11 +131,8 @@ async function createForm(questions, deadline) {
     resource: { requests }
   });
 
-
   const formLink = `https://docs.google.com/forms/d/${formId}`;
   return formLink;
-}
-
 
 async function sendEmails(studEmails, formLink) {
   try {
@@ -220,41 +213,46 @@ app.post("/upload-files", upload.single("file"), async (req, res) => {
 
 
 async function runScript(inputData) {
-  return new Promise((resolve, reject) => {
-    const python = spawn('python', ['model.py', JSON.stringify(inputData)]);
-    python.stdout.on('data', (data) => {
+  try {
+    const script = `
+      import sys
+      input_data = sys.argv[1]
+      # Your script logic here
+    `;
+    const pythonScript = spawn('python', ['-c', script, inputData]);
+    
+    pythonScript.stdout.on('data', (data) => {
       console.log(`stdout: ${data}`);
     });
-    python.stderr.on('data', (data) => {
+    
+    pythonScript.stderr.on('data', (data) => {
       console.error(`stderr: ${data}`);
-      reject(data);
     });
-    python.on('close', (code) => {
-      console.log(`child process exited with code ${code}`);
-      resolve();
-    });
-  });
-}
-runScript().then(() => {
-  console.log("Script executed successfully on backend startup.");
-}).catch((error) => {
-  console.error("Error executing script on backend startup:", error);
-});
-app.post("/trigger-script", async (req, res) => {
-  try {
-    runScript().then(() => {
-      console.log("Script executed successfully via trigger.");
-      res.status(200).json({ message: "Script executed successfully" });
-    }).catch((error) => {
-      console.error("Error executing script via trigger:", error);
-      res.status(500).json({ error: "Failed to execute script" });
+    
+    return new Promise((resolve, reject) => {
+      pythonScript.on('close', (code) => {
+        if (code === 0) {
+          console.log(`Script execution successful`);
+          resolve();
+        } else {
+          console.error(`Script execution failed with code ${code}`);
+          reject(`Script execution failed with code ${code}`);
+        }
+      });
     });
   } catch (error) {
-    console.error("Error running script:", error);
-    res.status(500).json({ error: "Failed to execute script" });
+    console.error("Error executing script:", error);
+    throw error;
   }
-});
+}
 
+runScript(JSON.stringify(inputData))
+  .then(() => {
+    console.log("Script executed successfully on backend startup.");
+  })
+  .catch((error) => {
+    console.error("Error executing script on backend startup:", error);
+  });
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}...`));
