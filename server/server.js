@@ -197,16 +197,31 @@ const pdfTextExtract = require('pdf-text-extract');
 
 app.post("/upload-files", upload.single("file"), async (req, res) => {
   const fileName = req.file.filename;
-  const pdfFile = fs.readFileSync(`./files/${fileName}`);
+  const filePath = `./files/${fileName}`;
+
   try {
-    const pdfContent = await pdfTextExtract(pdfFile);    
-    await PdfSchema.create({pdf: fileName, pdfdata: pdfContent});
+    const fileBuffer = fs.readFileSync(filePath);
+    const pdfDoc = await PDFDocument.load(fileBuffer);
+    const textContent = await extractTextFromPDF(pdfDoc);
+    
+    await PdfSchema.create({ pdf: fileName, pdfdata: textContent });
     res.send({ status: "Success" });
   } catch (error) {
-    console.error('Error extracting text from PDF or saving to database:', error);
+    console.error('Error processing PDF file:', error);
     res.status(500).json({ status: "error", message: "Failed to process PDF file" });
   }
 });
+
+async function extractTextFromPDF(pdfDoc) {
+  const pages = pdfDoc.getPages();
+  let textContent = '';
+
+  for (const page of pages) {
+    const text = await page.getTextContent();
+    textContent += text.items.map(item => item.str).join(' ') + '\n';
+  }
+  return textContent;
+}
 
 
 async function runScript(inputData) {
